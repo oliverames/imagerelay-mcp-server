@@ -1,0 +1,1 @@
+The Image Relay Products API allows integration with the Product Information aspect of the Image Relay platform.
