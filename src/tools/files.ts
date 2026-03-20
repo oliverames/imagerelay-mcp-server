@@ -253,7 +253,7 @@ export function registerFileTools(server: McpServer): void {
     {
       title: "Update File Metadata Terms",
       description:
-        "Update metadata terms on a file. Provide the file ID and an array of term_id/value pairs.",
+        "Update metadata terms on a file. Provide the file ID, an array of term_id/value pairs, and whether to overwrite or append.",
       inputSchema: {
         file_id: z.number().int().describe("The file ID to update"),
         terms: z
@@ -264,6 +264,11 @@ export function registerFileTools(server: McpServer): void {
             })
           )
           .describe("Metadata terms to set"),
+        overwrite: z
+          .boolean()
+          .describe(
+            "If true, overwrites existing term values. If false, appends to existing values."
+          ),
         response_format: z
           .nativeEnum(ResponseFormat)
           .default(ResponseFormat.MARKDOWN)
@@ -279,13 +284,14 @@ export function registerFileTools(server: McpServer): void {
     async (params: {
       file_id: number;
       terms: { term_id: number; value: string }[];
+      overwrite: boolean;
       response_format: ResponseFormat;
     }) => {
       try {
         const data = await apiRequest<IRFile>(
           `files/${params.file_id}/terms.json`,
           "POST",
-          { terms: params.terms }
+          { terms: params.terms, overwrite: params.overwrite }
         );
         const text = formatResponse(data, params.response_format, (d) => {
           const f = d as IRFile;
@@ -306,12 +312,17 @@ export function registerFileTools(server: McpServer): void {
     {
       title: "Update File Tags",
       description:
-        "Update keyword tags on a file. Provide the file ID and an array of keyword IDs.",
+        "Update keyword tags on a file. Provide tag IDs to add and/or remove.",
       inputSchema: {
         file_id: z.number().int().describe("The file ID to update"),
-        keyword_ids: z
+        add: z
           .array(z.number().int())
-          .describe("Keyword/tag IDs to set on the file"),
+          .optional()
+          .describe("Tag/keyword IDs to add to the file"),
+        remove: z
+          .array(z.number().int())
+          .optional()
+          .describe("Tag/keyword IDs to remove from the file"),
         response_format: z
           .nativeEnum(ResponseFormat)
           .default(ResponseFormat.MARKDOWN)
@@ -326,14 +337,18 @@ export function registerFileTools(server: McpServer): void {
     },
     async (params: {
       file_id: number;
-      keyword_ids: number[];
+      add?: number[];
+      remove?: number[];
       response_format: ResponseFormat;
     }) => {
       try {
+        const tags: Record<string, number[]> = {};
+        if (params.add) tags.add = params.add;
+        if (params.remove) tags.remove = params.remove;
         const data = await apiRequest<IRFile>(
           `files/${params.file_id}/tags.json`,
           "POST",
-          { keyword_ids: params.keyword_ids }
+          { tags }
         );
         const text = formatResponse(data, params.response_format, (d) => {
           const f = d as IRFile;
@@ -353,10 +368,14 @@ export function registerFileTools(server: McpServer): void {
     "ir_move_file",
     {
       title: "Move File",
-      description: "Move a file to a different folder.",
+      description:
+        "Move a file to one or more folders. Provide folder IDs as an array of strings.",
       inputSchema: {
         file_id: z.number().int().describe("The file ID to move"),
-        folder_id: z.number().int().describe("Destination folder ID"),
+        folder_ids: z
+          .array(z.string())
+          .min(1)
+          .describe("Destination folder IDs (array of string IDs)"),
         response_format: z
           .nativeEnum(ResponseFormat)
           .default(ResponseFormat.MARKDOWN)
@@ -371,14 +390,14 @@ export function registerFileTools(server: McpServer): void {
     },
     async (params: {
       file_id: number;
-      folder_id: number;
+      folder_ids: string[];
       response_format: ResponseFormat;
     }) => {
       try {
         const data = await apiRequest<IRFile>(
           `files/${params.file_id}/move.json`,
           "POST",
-          { folder_id: params.folder_id }
+          { folder_ids: params.folder_ids }
         );
         const text = formatResponse(data, params.response_format, (d) => {
           const f = d as IRFile;

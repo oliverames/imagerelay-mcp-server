@@ -39,19 +39,49 @@ function getClient(): AxiosInstance {
   return client;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_STATUS_CODES = new Set([429, 502, 503]);
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function apiRequest<T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   data?: unknown,
   params?: Record<string, unknown>
 ): Promise<T> {
-  const response = await getClient().request<T>({
-    url: endpoint,
-    method,
-    data,
-    params,
-  });
-  return response.data;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const response = await getClient().request<T>({
+        url: endpoint,
+        method,
+        data,
+        params,
+      });
+      return response.data;
+    } catch (error) {
+      lastError = error;
+
+      if (
+        error instanceof AxiosError &&
+        error.response &&
+        RETRY_STATUS_CODES.has(error.response.status) &&
+        attempt < MAX_RETRIES - 1
+      ) {
+        const backoff = Math.pow(2, attempt) * 500;
+        await delay(backoff);
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError;
 }
 
 /** Reset the cached client (for testing). */

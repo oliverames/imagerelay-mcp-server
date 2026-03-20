@@ -29,13 +29,26 @@ describe("Link Tools", () => {
   });
 
   describe("ir_create_folder_link", () => {
-    it("creates a folder link", async () => {
+    it("creates a folder link with all required params", async () => {
       mockRequest.mockResolvedValueOnce({ id: 2, uid: "fl-def", folder_id: 100 });
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_create_folder_link"];
-      const result = await tool.handler({ folder_id: 100, response_format: "markdown" });
+      const result = await tool.handler({
+        folder_id: 100,
+        allows_download: true,
+        expires_on: "2025-12-31",
+        show_tracking: false,
+        purpose: "Share with client",
+        response_format: "markdown",
+      });
       expect(result.content[0].text).toContain("Folder Link Created");
-      expect(mockRequest).toHaveBeenCalledWith("folder_links.json", "POST", { folder_id: 100 });
+      expect(mockRequest).toHaveBeenCalledWith("folder_links.json", "POST", {
+        folder_id: 100,
+        allows_download: true,
+        expires_on: "2025-12-31",
+        show_tracking: false,
+        purpose: "Share with client",
+      });
     });
   });
 
@@ -62,13 +75,13 @@ describe("Link Tools", () => {
   });
 
   describe("ir_create_upload_link", () => {
-    it("creates an upload link", async () => {
+    it("creates an upload link with required purpose", async () => {
       mockRequest.mockResolvedValueOnce({ id: 11, uid: "ul-def", folder_id: 200 });
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_create_upload_link"];
-      const result = await tool.handler({ folder_id: 200, response_format: "markdown" });
+      const result = await tool.handler({ folder_id: 200, purpose: "Vendor upload", response_format: "markdown" });
       expect(result.content[0].text).toContain("Upload Link Created");
-      expect(mockRequest).toHaveBeenCalledWith("upload_links.json", "POST", { folder_id: 200 });
+      expect(mockRequest).toHaveBeenCalledWith("upload_links.json", "POST", { folder_id: 200, purpose: "Vendor upload" });
     });
   });
 

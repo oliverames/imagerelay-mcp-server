@@ -52,16 +52,26 @@ export function registerLinkTools(server: McpServer): void {
     "ir_create_folder_link",
     {
       title: "Create Folder Link",
-      description: "Create a sharing link for a folder.",
+      description: "Create a sharing link for a folder. Requires download permission, expiry, tracking, and purpose.",
       inputSchema: {
         folder_id: z.number().int().describe("The folder ID to share"),
+        allows_download: z.boolean().describe("Whether the link allows file downloads"),
+        expires_on: z.string().describe("Expiration date for the link (ISO date string)"),
+        show_tracking: z.boolean().describe("Whether to show tracking info"),
+        purpose: z.string().min(1).describe("Purpose description for the link"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    async (params: { folder_id: number; response_format: ResponseFormat }) => {
+    async (params: { folder_id: number; allows_download: boolean; expires_on: string; show_tracking: boolean; purpose: string; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<FolderLink>("folder_links.json", "POST", { folder_id: params.folder_id });
+        const data = await apiRequest<FolderLink>("folder_links.json", "POST", {
+          folder_id: params.folder_id,
+          allows_download: params.allows_download,
+          expires_on: params.expires_on,
+          show_tracking: params.show_tracking,
+          purpose: params.purpose,
+        });
         const text = formatResponse(data, params.response_format, (d) => {
           const l = d as FolderLink;
           return `# Folder Link Created\n\n- **ID**: ${l.id}\n- **Folder**: ${l.folder_id}\n- **UID**: ${l.uid}`;
@@ -124,13 +134,17 @@ export function registerLinkTools(server: McpServer): void {
       description: "Create an upload link for a folder, allowing external file uploads.",
       inputSchema: {
         folder_id: z.number().int().describe("The folder ID for uploads"),
+        purpose: z.string().min(1).describe("Purpose description for the upload link"),
+        expires_on: z.string().optional().describe("Expiration date (ISO date string, optional)"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    async (params: { folder_id: number; response_format: ResponseFormat }) => {
+    async (params: { folder_id: number; purpose: string; expires_on?: string; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<UploadLink>("upload_links.json", "POST", { folder_id: params.folder_id });
+        const body: Record<string, unknown> = { folder_id: params.folder_id, purpose: params.purpose };
+        if (params.expires_on) body.expires_on = params.expires_on;
+        const data = await apiRequest<UploadLink>("upload_links.json", "POST", body);
         const text = formatResponse(data, params.response_format, (d) => {
           const l = d as UploadLink;
           return `# Upload Link Created\n\n- **ID**: ${l.id}\n- **Folder**: ${l.folder_id}\n- **UID**: ${l.uid}`;

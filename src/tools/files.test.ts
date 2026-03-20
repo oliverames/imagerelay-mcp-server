@@ -154,14 +154,14 @@ describe("File Tools", () => {
   });
 
   describe("ir_move_file", () => {
-    it("moves a file to another folder", async () => {
+    it("moves a file to folders using folder_ids array", async () => {
       const moved = { ...MOCK_FILE, folder_ids: [200] };
       mockRequest.mockResolvedValueOnce(moved);
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_move_file"];
-      const result = await tool.handler({ file_id: 500, folder_id: 200, response_format: "markdown" });
+      const result = await tool.handler({ file_id: 500, folder_ids: ["200"], response_format: "markdown" });
       expect(result.content[0].text).toContain("File Moved");
-      expect(mockRequest).toHaveBeenCalledWith("files/500/move.json", "POST", { folder_id: 200 });
+      expect(mockRequest).toHaveBeenCalledWith("files/500/move.json", "POST", { folder_ids: ["200"] });
     });
   });
 
