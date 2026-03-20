@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface Product {
@@ -39,11 +39,13 @@ export function registerProductTools(server: McpServer): void {
     "ir_get_products",
     {
       title: "List Products",
-      description: "List products in the PIM. Supports filtering by name, category, and variant options.",
+      description: "List products in the PIM. Supports filtering by name, category, variant options, template, and dimension.",
       inputSchema: {
         name: z.string().optional().describe("Filter by product name"),
         in_category: z.number().int().optional().describe("Filter by category ID"),
-        with_variants: z.boolean().optional().describe("Include variant data"),
+        with_variants: z.boolean().optional().describe("Filter products that have/don't have variants enabled"),
+        with_variant: z.number().int().optional().describe("Filter by product template ID (see ir_get_templates)"),
+        with_variant_dimension_id: z.number().int().optional().describe("Filter by variant dimension ID"),
         ...PaginationSchema,
       },
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
@@ -52,6 +54,8 @@ export function registerProductTools(server: McpServer): void {
       name?: string;
       in_category?: number;
       with_variants?: boolean;
+      with_variant?: number;
+      with_variant_dimension_id?: number;
       page: number;
       response_format: ResponseFormat;
     }) => {
@@ -59,13 +63,15 @@ export function registerProductTools(server: McpServer): void {
         const queryParams: Record<string, unknown> = { page: params.page };
         if (params.name) queryParams.name = params.name;
         if (params.in_category) queryParams.in_category = params.in_category;
-        if (params.with_variants) queryParams.with_variants = params.with_variants;
+        if (params.with_variants !== undefined) queryParams.with_variants = params.with_variants;
+        if (params.with_variant) queryParams.with_variant = params.with_variant;
+        if (params.with_variant_dimension_id) queryParams.with_variant_dimension_id = params.with_variant_dimension_id;
 
-        const data = await apiRequest<Product[]>("products.json", "GET", undefined, queryParams);
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<Product>("products.json", queryParams);
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const products = d as Product[];
           if (!products.length) return "No products found.";
-          return [`# Products (Page ${params.page})`, "", ...products.map((p) => formatProduct(p) + "\n")].join("\n");
+          return [`# Products (Page ${params.page})`, "", ...products.map((p) => formatProduct(p) + "\n")].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -107,6 +113,16 @@ export function registerProductTools(server: McpServer): void {
         product_template_id: z.number().int().optional().describe("Template ID for this product"),
         product_category_id: z.number().int().optional().describe("Category ID"),
         has_variants: z.boolean().optional().describe("Whether the product has variants"),
+        dimension1_name: z.string().optional().describe("Name for dimension 1 (e.g. 'Size')"),
+        dimension1_value: z.string().optional().describe("Value for dimension 1"),
+        dimension2_name: z.string().optional().describe("Name for dimension 2 (e.g. 'Color')"),
+        dimension2_value: z.string().optional().describe("Value for dimension 2"),
+        dimension3_name: z.string().optional().describe("Name for dimension 3"),
+        dimension3_value: z.string().optional().describe("Value for dimension 3"),
+        product_custom_attributes: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Custom attribute ID/value pairs"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -117,6 +133,13 @@ export function registerProductTools(server: McpServer): void {
       product_template_id?: number;
       product_category_id?: number;
       has_variants?: boolean;
+      dimension1_name?: string;
+      dimension1_value?: string;
+      dimension2_name?: string;
+      dimension2_value?: string;
+      dimension3_name?: string;
+      dimension3_value?: string;
+      product_custom_attributes?: { id: number; value: string }[];
       response_format: ResponseFormat;
     }) => {
       try {
@@ -125,9 +148,44 @@ export function registerProductTools(server: McpServer): void {
         if (params.product_template_id) body.product_template_id = params.product_template_id;
         if (params.product_category_id) body.product_category_id = params.product_category_id;
         if (params.has_variants !== undefined) body.has_variants = params.has_variants;
+        if (params.dimension1_name) body.dimension1_name = params.dimension1_name;
+        if (params.dimension1_value) body.dimension1_value = params.dimension1_value;
+        if (params.dimension2_name) body.dimension2_name = params.dimension2_name;
+        if (params.dimension2_value) body.dimension2_value = params.dimension2_value;
+        if (params.dimension3_name) body.dimension3_name = params.dimension3_name;
+        if (params.dimension3_value) body.dimension3_value = params.dimension3_value;
+        if (params.product_custom_attributes) body.product_custom_attributes = params.product_custom_attributes;
 
         const data = await apiRequest<Product>("products.json", "POST", body);
         const text = formatResponse(data, params.response_format, (d) => `# Product Created\n\n${formatProduct(d as Product)}`);
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_product_variants",
+    {
+      title: "Get Product Variants",
+      description: "List all variants for a specific product.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID whose variants to retrieve"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { product_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown[]>(`products/${params.product_id}/variants.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const variants = d as { id: number; name: string; [key: string]: unknown }[];
+          if (!Array.isArray(variants) || !variants.length) return "No variants found for this product.";
+          return [`# Variants for Product ${params.product_id}`, "",
+            ...variants.map((v) => `- **${v.name || `Variant ${v.id}`}** (ID: ${v.id})`)
+          ].join("\n");
+        });
         return { content: [{ type: "text", text }] };
       } catch (error) {
         return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };

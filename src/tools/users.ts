@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface User {
@@ -80,10 +80,10 @@ export function registerUserTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<User[]>("users.json", "GET", undefined, {
+        const result = await apiListRequest<User>("users.json", {
           page: params.page,
         });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const users = d as User[];
           if (!users.length) return "No users found.";
           const lines = [`# Users (Page ${params.page})`, ""];
@@ -91,7 +91,7 @@ export function registerUserTools(server: McpServer): void {
             lines.push(formatUser(u));
             lines.push("");
           }
-          return lines.join("\n");
+          return lines.join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

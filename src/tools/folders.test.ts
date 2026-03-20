@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_FOLDER, createApiMock } from "../test-helpers.js";
+import { MOCK_FOLDER, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerFolderTools } = await import("./folders.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -28,13 +28,13 @@ describe("Folder Tools", () => {
 
   describe("ir_get_folders", () => {
     it("lists folders with pagination", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_FOLDER]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_FOLDER]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_folders"];
       const result = await tool.handler({ page: 2, response_format: "markdown" });
       expect(result.content[0].text).toContain("Marketing Assets");
       expect(result.content[0].text).toContain("Page 2");
-      expect(mockRequest).toHaveBeenCalledWith("folders.json", "GET", undefined, { page: 2 });
+      expect(mockListRequest).toHaveBeenCalledWith("folders.json", { page: 2 });
     });
   });
 
@@ -53,16 +53,16 @@ describe("Folder Tools", () => {
   describe("ir_get_child_folders", () => {
     it("lists children of a folder", async () => {
       const child = { ...MOCK_FOLDER, id: 101, name: "Logos", parent_id: 100 };
-      mockRequest.mockResolvedValueOnce([child]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([child]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_child_folders"];
       const result = await tool.handler({ folder_id: 100, page: 1, response_format: "markdown" });
       expect(result.content[0].text).toContain("Logos");
-      expect(mockRequest).toHaveBeenCalledWith("folders/100/children.json", "GET", undefined, { page: 1 });
+      expect(mockListRequest).toHaveBeenCalledWith("folders/100/children.json", { page: 1 });
     });
 
     it("handles empty children", async () => {
-      mockRequest.mockResolvedValueOnce([]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_child_folders"];
       const result = await tool.handler({ folder_id: 100, page: 1, response_format: "markdown" });

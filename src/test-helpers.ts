@@ -1,15 +1,22 @@
 import { vi } from "vitest";
+import { DEFAULT_PAGE_SIZE } from "./constants.js";
+
+export interface ApiMocks {
+  mockRequest: ReturnType<typeof vi.fn>;
+  mockListRequest: ReturnType<typeof vi.fn>;
+}
 
 /**
- * Mock axios module. Call this before importing any tool module.
- * Returns a mock function that controls what apiRequest returns.
+ * Mock the api-client module. Call this before importing any tool module.
+ * Returns mock functions that control what apiRequest and apiListRequest return.
  */
-export function createApiMock() {
+export function createApiMock(): ApiMocks {
   const mockRequest = vi.fn();
+  const mockListRequest = vi.fn();
 
-  // Mock the api-client module
   vi.doMock("./services/api-client.js", () => ({
     apiRequest: mockRequest,
+    apiListRequest: mockListRequest,
     handleApiError: (error: unknown) => {
       if (error instanceof Error) return `Error: ${error.message}`;
       return `Error: ${String(error)}`;
@@ -17,7 +24,24 @@ export function createApiMock() {
     resetClient: vi.fn(),
   }));
 
-  return mockRequest;
+  return { mockRequest, mockListRequest };
+}
+
+/** Helper to wrap array data in the PaginatedResult format that apiListRequest returns */
+export function paginatedResult<T>(
+  data: T[],
+  options?: { current?: number; pages?: number | null; count?: number | null; has_next?: boolean }
+) {
+  return {
+    data,
+    pagination: {
+      current: options?.current ?? 1,
+      pages: options?.pages ?? null,
+      count: options?.count ?? null,
+      per_page: DEFAULT_PAGE_SIZE,
+      has_next: options?.has_next ?? false,
+    },
+  };
 }
 
 /** Standard mock user object */

@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface Collection {
@@ -33,11 +33,11 @@ export function registerCollectionTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Collection[]>("collections.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<Collection>("collections.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const cols = d as Collection[];
           if (!cols.length) return "No collections found.";
-          return [`# Collections (Page ${params.page})`, "", ...cols.map((c) => formatCollection(c) + "\n")].join("\n");
+          return [`# Collections (Page ${params.page})`, "", ...cols.map((c) => formatCollection(c) + "\n")].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -81,11 +81,14 @@ export function registerCollectionTools(server: McpServer): void {
     },
     async (params: { collection_id: number; page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<unknown[]>(`collections/${params.collection_id}/files.json`, "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<{ id: number; name: string; [key: string]: unknown }>(
+          `collections/${params.collection_id}/files.json`,
+          { page: params.page }
+        );
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const files = d as { id: number; name: string; [key: string]: unknown }[];
           if (!files.length) return "No files in this collection.";
-          return [`# Collection ${params.collection_id} Files (Page ${params.page})`, "", ...files.map((f) => `- **${f.name}** (ID: ${f.id})`)].join("\n");
+          return [`# Collection ${params.collection_id} Files (Page ${params.page})`, "", ...files.map((f) => `- **${f.name}** (ID: ${f.id})`)].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -123,17 +126,20 @@ export function registerCollectionTools(server: McpServer): void {
     "ir_update_collection",
     {
       title: "Update Collection",
-      description: "Update a collection's name.",
+      description: "Update a collection's name and/or add files to it.",
       inputSchema: {
         collection_id: z.number().int().describe("The collection ID to update"),
         name: z.string().min(1).describe("New name for the collection"),
+        asset_ids: z.string().optional().describe("Comma-separated list of file/asset IDs to add to the collection"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
-    async (params: { collection_id: number; name: string; response_format: ResponseFormat }) => {
+    async (params: { collection_id: number; name: string; asset_ids?: string; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Collection>(`collections/${params.collection_id}.json`, "PUT", { name: params.name });
+        const body: Record<string, unknown> = { name: params.name };
+        if (params.asset_ids) body.asset_ids = params.asset_ids;
+        const data = await apiRequest<Collection>(`collections/${params.collection_id}.json`, "PUT", body);
         const text = formatResponse(data, params.response_format, (d) => `# Collection Updated\n\n${formatCollection(d as Collection)}`);
         return { content: [{ type: "text", text }] };
       } catch (error) {

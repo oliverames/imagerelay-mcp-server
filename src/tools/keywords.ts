@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface KeywordSet {
@@ -29,11 +29,11 @@ export function registerKeywordTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<KeywordSet[]>("keyword_sets.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<KeywordSet>("keyword_sets.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const sets = d as KeywordSet[];
           if (!sets.length) return "No keyword sets found.";
-          return [`# Keyword Sets (Page ${params.page})`, "", ...sets.map((s) => `- **${s.name}** (ID: ${s.id})`)].join("\n");
+          return [`# Keyword Sets (Page ${params.page})`, "", ...sets.map((s) => `- **${s.name}** (ID: ${s.id})`)].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -55,16 +55,14 @@ export function registerKeywordTools(server: McpServer): void {
     },
     async (params: { keyword_set_id: number; page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Keyword[]>(
+        const result = await apiListRequest<Keyword>(
           `keyword_sets/${params.keyword_set_id}/keywords.json`,
-          "GET",
-          undefined,
           { page: params.page }
         );
-        const text = formatResponse(data, params.response_format, (d) => {
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const kws = d as Keyword[];
           if (!kws.length) return "No keywords in this set.";
-          return [`# Keywords in Set ${params.keyword_set_id} (Page ${params.page})`, "", ...kws.map((k) => `- **${k.name}** (ID: ${k.id})`)].join("\n");
+          return [`# Keywords in Set ${params.keyword_set_id} (Page ${params.page})`, "", ...kws.map((k) => `- **${k.name}** (ID: ${k.id})`)].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

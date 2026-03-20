@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_USER, createApiMock } from "../test-helpers.js";
+import { MOCK_USER, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 // Import after mocking
 const { registerUserTools } = await import("./users.js");
@@ -52,18 +52,18 @@ describe("User Tools", () => {
 
   describe("ir_get_users", () => {
     it("returns paginated user list", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_USER, { ...MOCK_USER, id: 43, first_name: "John" }]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_USER, { ...MOCK_USER, id: 43, first_name: "John" }]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_users"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });
       expect(result.content[0].text).toContain("Jane Doe");
       expect(result.content[0].text).toContain("John");
       expect(result.content[0].text).toContain("Page 1");
-      expect(mockRequest).toHaveBeenCalledWith("users.json", "GET", undefined, { page: 1 });
+      expect(mockListRequest).toHaveBeenCalledWith("users.json", { page: 1 });
     });
 
     it("returns empty message when no users", async () => {
-      mockRequest.mockResolvedValueOnce([]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_users"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });

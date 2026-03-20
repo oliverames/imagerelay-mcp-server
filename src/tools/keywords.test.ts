@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createApiMock } from "../test-helpers.js";
+import { createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerKeywordTools } = await import("./keywords.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -17,10 +17,10 @@ describe("Keyword Tools", () => {
 
   describe("ir_get_keyword_sets", () => {
     it("lists keyword sets", async () => {
-      mockRequest.mockResolvedValueOnce([
+      mockListRequest.mockResolvedValueOnce(paginatedResult([
         { id: 1, name: "Colors" },
         { id: 2, name: "Seasons" },
-      ]);
+      ]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_keyword_sets"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });
@@ -31,16 +31,16 @@ describe("Keyword Tools", () => {
 
   describe("ir_get_keywords", () => {
     it("lists keywords in a set", async () => {
-      mockRequest.mockResolvedValueOnce([
+      mockListRequest.mockResolvedValueOnce(paginatedResult([
         { id: 10, name: "Red", keyword_set_id: 1 },
         { id: 11, name: "Blue", keyword_set_id: 1 },
-      ]);
+      ]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_keywords"];
       const result = await tool.handler({ keyword_set_id: 1, page: 1, response_format: "markdown" });
       expect(result.content[0].text).toContain("Red");
       expect(result.content[0].text).toContain("Blue");
-      expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1/keywords.json", "GET", undefined, { page: 1 });
+      expect(mockListRequest).toHaveBeenCalledWith("keyword_sets/1/keywords.json", { page: 1 });
     });
   });
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_WEBHOOK, createApiMock } from "../test-helpers.js";
+import { MOCK_WEBHOOK, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerWebhookTools } = await import("./webhooks.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -29,7 +29,7 @@ describe("Webhook Tools", () => {
 
   describe("ir_get_webhooks", () => {
     it("lists configured webhooks", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_WEBHOOK]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_WEBHOOK]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_webhooks"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });

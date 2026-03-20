@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface FolderLink {
@@ -33,13 +33,13 @@ export function registerLinkTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<FolderLink[]>("folder_links.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<FolderLink>("folder_links.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const links = d as FolderLink[];
           if (!links.length) return "No folder links found.";
           return [`# Folder Links (Page ${params.page})`, "",
             ...links.map((l) => `- **Link ${l.id}** — Folder ${l.folder_id}, Created ${formatDate(l.created_at)}`)
-          ].join("\n");
+          ].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -112,13 +112,13 @@ export function registerLinkTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<UploadLink[]>("upload_links.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<UploadLink>("upload_links.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const links = d as UploadLink[];
           if (!links.length) return "No upload links found.";
           return [`# Upload Links (Page ${params.page})`, "",
             ...links.map((l) => `- **Link ${l.id}** — Folder ${l.folder_id}, Created ${formatDate(l.created_at)}`)
-          ].join("\n");
+          ].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

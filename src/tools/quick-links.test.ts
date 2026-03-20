@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_QUICK_LINK, createApiMock } from "../test-helpers.js";
+import { MOCK_QUICK_LINK, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerQuickLinkTools } = await import("./quick-links.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -17,12 +17,32 @@ describe("Quick Link Tools", () => {
 
   describe("ir_get_quick_links", () => {
     it("lists quick links", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_QUICK_LINK]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_QUICK_LINK]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_quick_links"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });
       expect(result.content[0].text).toContain("Quick Link 400");
       expect(result.content[0].text).toContain("ir.example.com");
+    });
+  });
+
+  describe("ir_get_user_quick_links", () => {
+    it("lists quick links for a specific user", async () => {
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_QUICK_LINK]));
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_user_quick_links"];
+      const result = await tool.handler({ user_id: 42, page: 1, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Quick Links for User 42");
+      expect(result.content[0].text).toContain("Quick Link 400");
+      expect(mockListRequest).toHaveBeenCalledWith("users/42/quick_links.json", { page: 1 });
+    });
+
+    it("handles empty results", async () => {
+      mockListRequest.mockResolvedValueOnce(paginatedResult([]));
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_user_quick_links"];
+      const result = await tool.handler({ user_id: 99, page: 1, response_format: "markdown" });
+      expect(result.content[0].text).toContain("No quick links found");
     });
   });
 

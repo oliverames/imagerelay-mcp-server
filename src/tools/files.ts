@@ -1,9 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
 import {
   formatResponse,
+  formatPaginationHint,
   formatDate,
   formatFileSize,
 } from "../services/formatter.js";
@@ -107,13 +108,11 @@ export function registerFileTools(server: McpServer): void {
         if (params.recursive) queryParams.recursive = true;
         if (params.query) queryParams.query = params.query;
 
-        const data = await apiRequest<IRFile[]>(
+        const result = await apiListRequest<IRFile>(
           `folders/${params.folder_id}/files.json`,
-          "GET",
-          undefined,
           queryParams
         );
-        const text = formatResponse(data, params.response_format, (d) => {
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const files = d as IRFile[];
           if (!files.length) return "No files found in this folder.";
           const lines = [
@@ -124,7 +123,7 @@ export function registerFileTools(server: McpServer): void {
             lines.push(formatFile(f));
             lines.push("");
           }
-          return lines.join("\n");
+          return lines.join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -266,8 +265,9 @@ export function registerFileTools(server: McpServer): void {
           .describe("Metadata terms to set"),
         overwrite: z
           .boolean()
+          .default(false)
           .describe(
-            "If true, overwrites existing term values. If false, appends to existing values."
+            "If true, overwrites existing term values. If false (default), appends to existing values."
           ),
         response_format: z
           .nativeEnum(ResponseFormat)
@@ -439,6 +439,62 @@ export function registerFileTools(server: McpServer): void {
             },
           ],
         };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: handleApiError(error) }],
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_duplicate_file",
+    {
+      title: "Duplicate File",
+      description:
+        "Duplicate/copy a file to another folder. Optionally copies all metadata, tags, and IPTC fields.",
+      inputSchema: {
+        file_id: z.number().int().describe("The file ID to duplicate"),
+        folder_id: z.string().describe("The destination folder ID (as a string)"),
+        should_copy_metadata: z
+          .boolean()
+          .default(true)
+          .describe(
+            "If true, copies all metadata, tags/keywords, and IPTC fields. If false, the copy gets the destination folder's default file type."
+          ),
+        response_format: z
+          .nativeEnum(ResponseFormat)
+          .default(ResponseFormat.MARKDOWN)
+          .describe("Output format"),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: true,
+      },
+    },
+    async (params: {
+      file_id: number;
+      folder_id: string;
+      should_copy_metadata: boolean;
+      response_format: ResponseFormat;
+    }) => {
+      try {
+        const data = await apiRequest<IRFile>(
+          `files/${params.file_id}/dupicate.json`,
+          "POST",
+          {
+            folder_id: params.folder_id,
+            should_copy_metadata: params.should_copy_metadata,
+          }
+        );
+        const text = formatResponse(data, params.response_format, (d) => {
+          const f = d as IRFile;
+          return `# File Duplicated\n\n${formatFile(f)}`;
+        });
+        return { content: [{ type: "text", text }] };
       } catch (error) {
         return {
           isError: true,

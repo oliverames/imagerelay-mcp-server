@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createApiMock } from "../test-helpers.js";
+import { createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerLinkTools } = await import("./links.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -17,9 +17,9 @@ describe("Link Tools", () => {
 
   describe("ir_get_folder_links", () => {
     it("lists folder links", async () => {
-      mockRequest.mockResolvedValueOnce([
+      mockListRequest.mockResolvedValueOnce(paginatedResult([
         { id: 1, uid: "fl-abc", folder_id: 100, created_at: "2024-01-01T00:00:00Z" },
-      ]);
+      ]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_folder_links"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });
@@ -64,9 +64,9 @@ describe("Link Tools", () => {
 
   describe("ir_get_upload_links", () => {
     it("lists upload links", async () => {
-      mockRequest.mockResolvedValueOnce([
+      mockListRequest.mockResolvedValueOnce(paginatedResult([
         { id: 10, uid: "ul-abc", folder_id: 100, created_at: "2024-02-01T00:00:00Z" },
-      ]);
+      ]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_upload_links"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });

@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface Webhook {
@@ -57,11 +57,11 @@ export function registerWebhookTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Webhook[]>("webhooks.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<Webhook>("webhooks.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const hooks = d as Webhook[];
           if (!hooks.length) return "No webhooks configured.";
-          return [`# Webhooks (Page ${params.page})`, "", ...hooks.map((w) => formatWebhook(w) + "\n")].join("\n");
+          return [`# Webhooks (Page ${params.page})`, "", ...hooks.map((w) => formatWebhook(w) + "\n")].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

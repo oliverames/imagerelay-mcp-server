@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface QuickLink {
@@ -39,11 +39,37 @@ export function registerQuickLinkTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<QuickLink[]>("quick_links.json", "GET", undefined, { page: params.page });
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<QuickLink>("quick_links.json", { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const links = d as QuickLink[];
           if (!links.length) return "No quick links found.";
-          return [`# Quick Links (Page ${params.page})`, "", ...links.map((ql) => formatQuickLink(ql) + "\n")].join("\n");
+          return [`# Quick Links (Page ${params.page})`, "", ...links.map((ql) => formatQuickLink(ql) + "\n")].join("\n") + formatPaginationHint(result.pagination);
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_user_quick_links",
+    {
+      title: "Get User's Quick Links",
+      description: "List all quick links belonging to a specific user.",
+      inputSchema: {
+        user_id: z.number().int().describe("The user ID whose quick links to retrieve"),
+        ...PaginationSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { user_id: number; page: number; response_format: ResponseFormat }) => {
+      try {
+        const result = await apiListRequest<QuickLink>(`users/${params.user_id}/quick_links.json`, { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
+          const links = d as QuickLink[];
+          if (!links.length) return "No quick links found for this user.";
+          return [`# Quick Links for User ${params.user_id} (Page ${params.page})`, "", ...links.map((ql) => formatQuickLink(ql) + "\n")].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

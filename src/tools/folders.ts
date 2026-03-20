@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ResponseFormat } from "../constants.js";
-import { apiRequest, handleApiError } from "../services/api-client.js";
-import { formatResponse, formatDate } from "../services/formatter.js";
+import { apiRequest, apiListRequest, handleApiError } from "../services/api-client.js";
+import { formatResponse, formatPaginationHint, formatDate } from "../services/formatter.js";
 import { PaginationSchema, IdParamSchema } from "../schemas/common.js";
 
 interface Folder {
@@ -77,13 +77,10 @@ export function registerFolderTools(server: McpServer): void {
     },
     async (params: { page: number; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Folder[]>(
-          "folders.json",
-          "GET",
-          undefined,
-          { page: params.page }
-        );
-        const text = formatResponse(data, params.response_format, (d) => {
+        const result = await apiListRequest<Folder>("folders.json", {
+          page: params.page,
+        });
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const folders = d as Folder[];
           if (!folders.length) return "No folders found.";
           const lines = [`# Folders (Page ${params.page})`, ""];
@@ -91,7 +88,7 @@ export function registerFolderTools(server: McpServer): void {
             lines.push(formatFolder(f));
             lines.push("");
           }
-          return lines.join("\n");
+          return lines.join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -163,13 +160,11 @@ export function registerFolderTools(server: McpServer): void {
       response_format: ResponseFormat;
     }) => {
       try {
-        const data = await apiRequest<Folder[]>(
+        const result = await apiListRequest<Folder>(
           `folders/${params.folder_id}/children.json`,
-          "GET",
-          undefined,
           { page: params.page }
         );
-        const text = formatResponse(data, params.response_format, (d) => {
+        const text = formatResponse(result.data, params.response_format, (d) => {
           const folders = d as Folder[];
           if (!folders.length) return "No child folders found.";
           const lines = [
@@ -180,7 +175,7 @@ export function registerFolderTools(server: McpServer): void {
             lines.push(formatFolder(f));
             lines.push("");
           }
-          return lines.join("\n");
+          return lines.join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

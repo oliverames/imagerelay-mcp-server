@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { formatResponse, formatDate, formatFileSize } from "./formatter.js";
+import { formatResponse, formatPaginationHint, formatDate, formatFileSize } from "./formatter.js";
 import { ResponseFormat, CHARACTER_LIMIT } from "../constants.js";
+import type { PaginationInfo } from "./api-client.js";
 
 describe("formatResponse", () => {
   const markdownFn = (d: unknown) => `# Result\n${JSON.stringify(d)}`;
@@ -86,5 +87,36 @@ describe("formatFileSize", () => {
 
   it("handles zero bytes", () => {
     expect(formatFileSize(0)).toBe("0 B");
+  });
+});
+
+describe("formatPaginationHint", () => {
+  it("shows page X of Y with count and next hint", () => {
+    const info: PaginationInfo = { current: 2, pages: 5, count: 100, per_page: 20, has_next: true };
+    const result = formatPaginationHint(info);
+    expect(result).toContain("Page 2 of 5");
+    expect(result).toContain("100 total items");
+    expect(result).toContain("use page 3 for more");
+  });
+
+  it("shows page without total when pages/count unknown", () => {
+    const info: PaginationInfo = { current: 1, pages: null, count: null, per_page: 50, has_next: false };
+    const result = formatPaginationHint(info);
+    expect(result).toContain("Page 1");
+    expect(result).not.toContain("total items");
+    expect(result).not.toContain("use page");
+  });
+
+  it("shows next page hint when has_next is true", () => {
+    const info: PaginationInfo = { current: 3, pages: null, count: null, per_page: 50, has_next: true };
+    const result = formatPaginationHint(info);
+    expect(result).toContain("use page 4 for more");
+  });
+
+  it("shows page count without next when on last page", () => {
+    const info: PaginationInfo = { current: 5, pages: 5, count: 100, per_page: 20, has_next: false };
+    const result = formatPaginationHint(info);
+    expect(result).toContain("Page 5 of 5");
+    expect(result).not.toContain("use page");
   });
 });

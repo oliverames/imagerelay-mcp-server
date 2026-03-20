@@ -1,4 +1,5 @@
 import { CHARACTER_LIMIT, ResponseFormat } from "../constants.js";
+import type { PaginationInfo } from "./api-client.js";
 
 export function formatResponse(
   data: unknown,
@@ -18,6 +19,26 @@ export function formatResponse(
   }
 
   return text;
+}
+
+export function formatPaginationHint(pagination: PaginationInfo): string {
+  const parts: string[] = [];
+
+  if (pagination.pages != null) {
+    parts.push(`Page ${pagination.current} of ${pagination.pages}`);
+  } else {
+    parts.push(`Page ${pagination.current}`);
+  }
+
+  if (pagination.count != null) {
+    parts.push(`${pagination.count} total items`);
+  }
+
+  if (pagination.has_next) {
+    parts.push(`use page ${pagination.current + 1} for more`);
+  }
+
+  return parts.length > 0 ? `\n\n---\n*${parts.join(" · ")}*` : "";
 }
 
 export function formatDate(dateStr: string | null | undefined): string {

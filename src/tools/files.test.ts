@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_FILE, createApiMock } from "../test-helpers.js";
+import { MOCK_FILE, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerFileTools } = await import("./files.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -17,7 +17,7 @@ describe("File Tools", () => {
 
   describe("ir_get_files", () => {
     it("lists files in a folder", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_FILE]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_FILE]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_files"];
       const result = await tool.handler({
@@ -29,16 +29,14 @@ describe("File Tools", () => {
       expect(result.content[0].text).toContain("logo.png");
       expect(result.content[0].text).toContain("240.0 KB");
       expect(result.content[0].text).toContain("1200x800");
-      expect(mockRequest).toHaveBeenCalledWith(
+      expect(mockListRequest).toHaveBeenCalledWith(
         "folders/100/files.json",
-        "GET",
-        undefined,
         { page: 1 }
       );
     });
 
     it("passes all filter params", async () => {
-      mockRequest.mockResolvedValueOnce([]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_files"];
       await tool.handler({
@@ -50,10 +48,8 @@ describe("File Tools", () => {
         query: "logo",
         response_format: "markdown",
       });
-      expect(mockRequest).toHaveBeenCalledWith(
+      expect(mockListRequest).toHaveBeenCalledWith(
         "folders/100/files.json",
-        "GET",
-        undefined,
         {
           page: 1,
           uploaded_after: "2024-01-01",
@@ -65,7 +61,7 @@ describe("File Tools", () => {
     });
 
     it("shows metadata terms in markdown", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_FILE]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_FILE]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_files"];
       const result = await tool.handler({
@@ -78,7 +74,7 @@ describe("File Tools", () => {
     });
 
     it("returns JSON with all fields", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_FILE]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_FILE]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_files"];
       const result = await tool.handler({
@@ -153,6 +149,60 @@ describe("File Tools", () => {
     });
   });
 
+  describe("ir_update_file_metadata", () => {
+    it("updates metadata terms with overwrite", async () => {
+      const updated = { ...MOCK_FILE, terms: [{ term_id: 1, value: "New Value" }] };
+      mockRequest.mockResolvedValueOnce(updated);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_file_metadata"];
+      const result = await tool.handler({
+        file_id: 500,
+        terms: [{ term_id: 1, value: "New Value" }],
+        overwrite: true,
+        response_format: "markdown",
+      });
+      expect(result.content[0].text).toContain("File Metadata Updated");
+      expect(mockRequest).toHaveBeenCalledWith("files/500/terms.json", "POST", {
+        terms: [{ term_id: 1, value: "New Value" }],
+        overwrite: true,
+      });
+    });
+
+    it("defaults overwrite to false", async () => {
+      mockRequest.mockResolvedValueOnce(MOCK_FILE);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_file_metadata"];
+      await tool.handler({
+        file_id: 500,
+        terms: [{ term_id: 1, value: "Appended" }],
+        overwrite: false,
+        response_format: "markdown",
+      });
+      expect(mockRequest).toHaveBeenCalledWith("files/500/terms.json", "POST", {
+        terms: [{ term_id: 1, value: "Appended" }],
+        overwrite: false,
+      });
+    });
+  });
+
+  describe("ir_update_file_tags", () => {
+    it("adds and removes tags", async () => {
+      mockRequest.mockResolvedValueOnce(MOCK_FILE);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_file_tags"];
+      const result = await tool.handler({
+        file_id: 500,
+        add: [10, 20],
+        remove: [5],
+        response_format: "markdown",
+      });
+      expect(result.content[0].text).toContain("File Tags Updated");
+      expect(mockRequest).toHaveBeenCalledWith("files/500/tags.json", "POST", {
+        tags: { add: [10, 20], remove: [5] },
+      });
+    });
+  });
+
   describe("ir_move_file", () => {
     it("moves a file to folders using folder_ids array", async () => {
       const moved = { ...MOCK_FILE, folder_ids: [200] };
@@ -172,6 +222,43 @@ describe("File Tools", () => {
       const tool = (server as any)._registeredTools["ir_delete_file"];
       const result = await tool.handler({ file_id: 500 });
       expect(result.content[0].text).toContain("deleted successfully");
+    });
+  });
+
+  describe("ir_duplicate_file", () => {
+    it("duplicates a file to another folder", async () => {
+      const duplicated = { ...MOCK_FILE, id: 501 };
+      mockRequest.mockResolvedValueOnce(duplicated);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_duplicate_file"];
+      const result = await tool.handler({
+        file_id: 500,
+        folder_id: "200",
+        should_copy_metadata: true,
+        response_format: "markdown",
+      });
+      expect(result.content[0].text).toContain("File Duplicated");
+      expect(mockRequest).toHaveBeenCalledWith("files/500/dupicate.json", "POST", {
+        folder_id: "200",
+        should_copy_metadata: true,
+      });
+    });
+
+    it("defaults should_copy_metadata to true", async () => {
+      mockRequest.mockResolvedValueOnce({ ...MOCK_FILE, id: 502 });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_duplicate_file"];
+      await tool.handler({
+        file_id: 500,
+        folder_id: "200",
+        should_copy_metadata: true,
+        response_format: "markdown",
+      });
+      expect(mockRequest).toHaveBeenCalledWith(
+        "files/500/dupicate.json",
+        "POST",
+        expect.objectContaining({ should_copy_metadata: true })
+      );
     });
   });
 

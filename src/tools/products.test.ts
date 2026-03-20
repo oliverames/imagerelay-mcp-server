@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { MOCK_PRODUCT, createApiMock } from "../test-helpers.js";
+import { MOCK_PRODUCT, createApiMock, paginatedResult } from "../test-helpers.js";
 
-const mockRequest = createApiMock();
+const { mockRequest, mockListRequest } = createApiMock();
 
 const { registerProductTools } = await import("./products.js");
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
@@ -17,7 +17,7 @@ describe("Product Tools", () => {
 
   describe("ir_get_products", () => {
     it("lists products", async () => {
-      mockRequest.mockResolvedValueOnce([MOCK_PRODUCT]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([MOCK_PRODUCT]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_products"];
       const result = await tool.handler({ page: 1, response_format: "markdown" });
@@ -26,11 +26,11 @@ describe("Product Tools", () => {
     });
 
     it("passes filter params", async () => {
-      mockRequest.mockResolvedValueOnce([]);
+      mockListRequest.mockResolvedValueOnce(paginatedResult([]));
       const server = createServer();
       const tool = (server as any)._registeredTools["ir_get_products"];
       await tool.handler({ name: "Widget", in_category: 5, with_variants: true, page: 1, response_format: "markdown" });
-      expect(mockRequest).toHaveBeenCalledWith("products.json", "GET", undefined, {
+      expect(mockListRequest).toHaveBeenCalledWith("products.json", {
         page: 1,
         name: "Widget",
         in_category: 5,
@@ -72,6 +72,29 @@ describe("Product Tools", () => {
         product_category_id: 2,
         has_variants: true,
       });
+    });
+  });
+
+  describe("ir_get_product_variants", () => {
+    it("lists variants for a product", async () => {
+      mockRequest.mockResolvedValueOnce([
+        { id: 1, name: "Small Red" },
+        { id: 2, name: "Large Blue" },
+      ]);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_product_variants"];
+      const result = await tool.handler({ product_id: 600, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Small Red");
+      expect(result.content[0].text).toContain("Large Blue");
+      expect(mockRequest).toHaveBeenCalledWith("products/600/variants.json");
+    });
+
+    it("handles empty variants", async () => {
+      mockRequest.mockResolvedValueOnce([]);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_product_variants"];
+      const result = await tool.handler({ product_id: 600, response_format: "markdown" });
+      expect(result.content[0].text).toContain("No variants found");
     });
   });
 
