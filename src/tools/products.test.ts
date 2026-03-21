@@ -149,4 +149,69 @@ describe("Product Tools", () => {
       expect(result.content[0].text).toContain("Standard Product");
     });
   });
+
+  describe("ir_update_product", () => {
+    it("updates a product", async () => {
+      mockRequest.mockResolvedValueOnce({ ...MOCK_PRODUCT, name: "Widget Ultra" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_product"];
+      const result = await tool.handler({ product_id: 600, name: "Widget Ultra", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Product Updated");
+      expect(mockRequest).toHaveBeenCalledWith("products/600.json", "PUT", expect.objectContaining({ name: "Widget Ultra" }));
+    });
+  });
+
+  describe("ir_update_catalog", () => {
+    it("updates a catalog", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, name: "Winter 2024" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_catalog"];
+      const result = await tool.handler({ catalog_id: 1, name: "Winter 2024", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Catalog Updated");
+      expect(mockRequest).toHaveBeenCalledWith("product_catalogs/1.json", "PUT", { name: "Winter 2024" });
+    });
+  });
+
+  describe("ir_delete_catalog", () => {
+    it("deletes a catalog", async () => {
+      mockRequest.mockResolvedValueOnce(undefined);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_delete_catalog"];
+      const result = await tool.handler({ catalog_id: 1 });
+      expect(result.content[0].text).toContain("deleted");
+    });
+  });
+
+  describe("ir_create_variant", () => {
+    it("creates a variant", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 50, name: "Large Red" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_variant"];
+      const result = await tool.handler({ product_id: 600, name: "Large Red", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Variant Created");
+      expect(mockRequest).toHaveBeenCalledWith("products/600/variants.json", "POST", expect.objectContaining({ name: "Large Red" }));
+    });
+  });
+
+  describe("ir_update_variant", () => {
+    it("updates a variant with PATCH", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 50, name: "XL Red" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_variant"];
+      const result = await tool.handler({ product_id: 600, variant_id: 50, name: "XL Red", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Variant Updated");
+      expect(mockRequest).toHaveBeenCalledWith("products/600/variants/50.json", "PATCH", expect.objectContaining({ name: "XL Red" }));
+    });
+  });
+
+  describe("ir_get_dimensions", () => {
+    it("lists dimensions", async () => {
+      mockRequest.mockResolvedValueOnce([{ id: 1, name: "Size" }, { id: 2, name: "Color" }]);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_dimensions"];
+      const result = await tool.handler({ response_format: "markdown" });
+      expect(result.content[0].text).toContain("Size");
+      expect(result.content[0].text).toContain("Color");
+    });
+  });
 });

@@ -77,4 +77,48 @@ describe("Keyword Tools", () => {
       expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1/keywords/10.json", "DELETE");
     });
   });
+
+  describe("ir_get_keyword_set", () => {
+    it("gets a single keyword set", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, name: "Colors" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_keyword_set"];
+      const result = await tool.handler({ keyword_set_id: 1, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Colors");
+      expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1.json");
+    });
+  });
+
+  describe("ir_get_keyword", () => {
+    it("gets a single keyword", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 10, name: "Red", keyword_set_id: 1 });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_keyword"];
+      const result = await tool.handler({ keyword_set_id: 1, keyword_id: 10, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Red");
+      expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1/keywords/10.json");
+    });
+  });
+
+  describe("ir_update_keyword_set", () => {
+    it("updates a keyword set name", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, name: "Shades" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_keyword_set"];
+      const result = await tool.handler({ keyword_set_id: 1, name: "Shades", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Updated");
+      expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1.json", "PUT", { name: "Shades" });
+    });
+  });
+
+  describe("ir_update_keyword", () => {
+    it("updates a keyword name", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 10, name: "Crimson", keyword_set_id: 1 });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_keyword"];
+      const result = await tool.handler({ keyword_set_id: 1, keyword_id: 10, name: "Crimson", response_format: "markdown" });
+      expect(result.content[0].text).toContain("Updated");
+      expect(mockRequest).toHaveBeenCalledWith("keyword_sets/1/keywords/10.json", "PUT", { name: "Crimson" });
+    });
+  });
 });

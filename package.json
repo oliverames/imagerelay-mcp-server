@@ -1,17 +1,34 @@
 {
   "name": "imagerelay-mcp-server",
-  "version": "1.0.0",
-  "description": "MCP server for Image Relay API integration",
+  "version": "2.0.0",
+  "description": "MCP server for Image Relay API integration — complete API coverage with 90+ tools",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "imagerelay-mcp-server": "dist/index.js"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "image-relay",
+    "digital-asset-management",
+    "dam",
+    "api"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliverames/imagerelay-mcp-server.git"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },

@@ -11,6 +11,9 @@ import { registerKeywordTools } from "./tools/keywords.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerProductTools } from "./tools/products.js";
 import { registerLinkTools } from "./tools/links.js";
+import { registerInvitedUserTools } from "./tools/invited-users.js";
+import { registerPermissionTools } from "./tools/permissions.js";
+import { registerCustomAttributeTools } from "./tools/custom-attributes.js";
 
 const server = new McpServer({
   name: "imagerelay-mcp-server",
@@ -27,6 +30,9 @@ registerKeywordTools(server);
 registerWebhookTools(server);
 registerProductTools(server);
 registerLinkTools(server);
+registerInvitedUserTools(server);
+registerPermissionTools(server);
+registerCustomAttributeTools(server);
 
 async function main(): Promise<void> {
   if (!process.env.IMAGERELAY_API_KEY) {

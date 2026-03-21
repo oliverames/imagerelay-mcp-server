@@ -72,6 +72,57 @@ export function registerKeywordTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "ir_get_keyword_set",
+    {
+      title: "Get Keyword Set",
+      description: "Get details for a specific keyword set by ID.",
+      inputSchema: {
+        keyword_set_id: z.number().int().describe("The keyword set ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { keyword_set_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<KeywordSet>(`keyword_sets/${params.keyword_set_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const s = d as KeywordSet;
+          return `# Keyword Set\n\n- **${s.name}** (ID: ${s.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_keyword",
+    {
+      title: "Get Keyword",
+      description: "Get details for a specific keyword by ID.",
+      inputSchema: {
+        keyword_set_id: z.number().int().describe("The keyword set ID"),
+        keyword_id: z.number().int().describe("The keyword ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { keyword_set_id: number; keyword_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Keyword>(`keyword_sets/${params.keyword_set_id}/keywords/${params.keyword_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const k = d as Keyword;
+          return `# Keyword\n\n- **${k.name}** (ID: ${k.id}) in Set ${k.keyword_set_id}`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
     "ir_create_keyword_set",
     {
       title: "Create Keyword Set",
@@ -118,6 +169,63 @@ export function registerKeywordTools(server: McpServer): void {
         const text = formatResponse(data, params.response_format, (d) => {
           const k = d as Keyword;
           return `# Keyword Created\n\n- **${k.name}** (ID: ${k.id}) in Set ${k.keyword_set_id}`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_keyword_set",
+    {
+      title: "Update Keyword Set",
+      description: "Update a keyword set's name.",
+      inputSchema: {
+        keyword_set_id: z.number().int().describe("The keyword set ID to update"),
+        name: z.string().min(1).describe("New name for the keyword set"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { keyword_set_id: number; name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<KeywordSet>(`keyword_sets/${params.keyword_set_id}.json`, "PUT", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const s = d as KeywordSet;
+          return `# Keyword Set Updated\n\n- **${s.name}** (ID: ${s.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_keyword",
+    {
+      title: "Update Keyword",
+      description: "Update a keyword's name.",
+      inputSchema: {
+        keyword_set_id: z.number().int().describe("The keyword set ID"),
+        keyword_id: z.number().int().describe("The keyword ID to update"),
+        name: z.string().min(1).describe("New name for the keyword"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { keyword_set_id: number; keyword_id: number; name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Keyword>(
+          `keyword_sets/${params.keyword_set_id}/keywords/${params.keyword_id}.json`,
+          "PUT",
+          { name: params.name }
+        );
+        const text = formatResponse(data, params.response_format, (d) => {
+          const k = d as Keyword;
+          return `# Keyword Updated\n\n- **${k.name}** (ID: ${k.id}) in Set ${k.keyword_set_id}`;
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

@@ -276,4 +276,26 @@ describe("File Tools", () => {
       expect(result.content[0].text).toContain("Document");
     });
   });
+
+  describe("ir_get_file_type", () => {
+    it("gets a single file type", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 10, name: "Photo" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_file_type"];
+      const result = await tool.handler({ file_type_id: 10, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Photo");
+      expect(mockRequest).toHaveBeenCalledWith("file_types/10.json");
+    });
+  });
+
+  describe("ir_create_synced_file", () => {
+    it("creates a synced file across folders", async () => {
+      mockRequest.mockResolvedValueOnce(MOCK_FILE);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_synced_file"];
+      const result = await tool.handler({ file_id: 500, folder_ids: ["200", "300"], response_format: "markdown" });
+      expect(result.content[0].text).toContain("Synced File Created");
+      expect(mockRequest).toHaveBeenCalledWith("files/500/synced_file.json", "POST", { folder_ids: ["200", "300"] });
+    });
+  });
 });

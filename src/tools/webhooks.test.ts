@@ -88,4 +88,16 @@ describe("Webhook Tools", () => {
       expect(result.content[0].text).toContain("deleted");
     });
   });
+
+  describe("ir_get_webhook", () => {
+    it("gets a single webhook", async () => {
+      mockRequest.mockResolvedValueOnce(MOCK_WEBHOOK);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_webhook"];
+      const result = await tool.handler({ webhook_id: 300, response_format: "markdown" });
+      expect(result.content[0].text).toContain("file");
+      expect(result.content[0].text).toContain("created");
+      expect(mockRequest).toHaveBeenCalledWith("webhooks/300.json");
+    });
+  });
 });

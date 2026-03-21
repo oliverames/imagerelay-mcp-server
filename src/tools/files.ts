@@ -539,4 +539,78 @@ export function registerFileTools(server: McpServer): void {
       }
     }
   );
+
+  server.registerTool(
+    "ir_get_file_type",
+    {
+      title: "Get File Type",
+      description: "Get details for a specific file type (metadata template) by ID.",
+      inputSchema: {
+        file_type_id: z.number().int().describe("The file type ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { file_type_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<{ id: number; name: string; [key: string]: unknown }>(`file_types/${params.file_type_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const t = d as { id: number; name: string; [key: string]: unknown };
+          return `# File Type\n\n- **${t.name}** (ID: ${t.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_create_synced_file",
+    {
+      title: "Create Synced File",
+      description:
+        "Create a synced file across multiple folders. Changes to any synced instance apply to all copies.",
+      inputSchema: {
+        file_id: z.number().int().describe("The file ID to create synced copies from"),
+        folder_ids: z
+          .array(z.string())
+          .min(1)
+          .describe("Destination folder IDs (array of string IDs)"),
+        response_format: z
+          .nativeEnum(ResponseFormat)
+          .default(ResponseFormat.MARKDOWN)
+          .describe("Output format"),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async (params: {
+      file_id: number;
+      folder_ids: string[];
+      response_format: ResponseFormat;
+    }) => {
+      try {
+        const data = await apiRequest<IRFile>(
+          `files/${params.file_id}/synced_file.json`,
+          "POST",
+          { folder_ids: params.folder_ids }
+        );
+        const text = formatResponse(data, params.response_format, (d) => {
+          const f = d as IRFile;
+          return `# Synced File Created\n\n${formatFile(f)}`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: handleApiError(error) }],
+        };
+      }
+    }
+  );
 }

@@ -71,6 +71,28 @@ export function registerWebhookTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "ir_get_webhook",
+    {
+      title: "Get Webhook",
+      description: "Get details for a specific webhook by ID.",
+      inputSchema: {
+        webhook_id: z.number().int().describe("The webhook ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { webhook_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Webhook>(`webhooks/${params.webhook_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => formatWebhook(d as Webhook));
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
     "ir_create_webhook",
     {
       title: "Create Webhook",

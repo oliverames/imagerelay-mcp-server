@@ -194,6 +194,244 @@ export function registerProductTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "ir_update_product",
+    {
+      title: "Update Product",
+      description: "Update a product in the PIM.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID to update"),
+        name: z.string().min(1).describe("New product name"),
+        sku: z.string().optional().describe("New product SKU"),
+        product_template_id: z.number().int().optional().describe("New template ID"),
+        product_category_id: z.number().int().optional().describe("New category ID"),
+        has_variants: z.boolean().optional().describe("Whether the product has variants"),
+        dimension1_name: z.string().optional().describe("Name for dimension 1"),
+        dimension1_value: z.string().optional().describe("Value for dimension 1"),
+        dimension1_id: z.number().int().optional().describe("ID for dimension 1"),
+        dimension2_name: z.string().optional().describe("Name for dimension 2"),
+        dimension2_value: z.string().optional().describe("Value for dimension 2"),
+        dimension2_id: z.number().int().optional().describe("ID for dimension 2"),
+        dimension3_name: z.string().optional().describe("Name for dimension 3"),
+        dimension3_value: z.string().optional().describe("Value for dimension 3"),
+        dimension3_id: z.number().int().optional().describe("ID for dimension 3"),
+        product_custom_attributes: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Custom attribute ID/value pairs"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: {
+      product_id: number;
+      name: string;
+      sku?: string;
+      product_template_id?: number;
+      product_category_id?: number;
+      has_variants?: boolean;
+      dimension1_name?: string;
+      dimension1_value?: string;
+      dimension1_id?: number;
+      dimension2_name?: string;
+      dimension2_value?: string;
+      dimension2_id?: number;
+      dimension3_name?: string;
+      dimension3_value?: string;
+      dimension3_id?: number;
+      product_custom_attributes?: { id: number; value: string }[];
+      response_format: ResponseFormat;
+    }) => {
+      try {
+        const body: Record<string, unknown> = { name: params.name };
+        if (params.sku) body.sku = params.sku;
+        if (params.product_template_id) body.product_template_id = params.product_template_id;
+        if (params.product_category_id) body.product_category_id = params.product_category_id;
+        if (params.has_variants !== undefined) body.has_variants = params.has_variants;
+        if (params.dimension1_name) body.dimension1_name = params.dimension1_name;
+        if (params.dimension1_value) body.dimension1_value = params.dimension1_value;
+        if (params.dimension1_id) body.dimension1_id = params.dimension1_id;
+        if (params.dimension2_name) body.dimension2_name = params.dimension2_name;
+        if (params.dimension2_value) body.dimension2_value = params.dimension2_value;
+        if (params.dimension2_id) body.dimension2_id = params.dimension2_id;
+        if (params.dimension3_name) body.dimension3_name = params.dimension3_name;
+        if (params.dimension3_value) body.dimension3_value = params.dimension3_value;
+        if (params.dimension3_id) body.dimension3_id = params.dimension3_id;
+        if (params.product_custom_attributes) body.product_custom_attributes = params.product_custom_attributes;
+
+        const data = await apiRequest<Product>(`products/${params.product_id}.json`, "PUT", body);
+        const text = formatResponse(data, params.response_format, (d) => `# Product Updated\n\n${formatProduct(d as Product)}`);
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_product_catalog",
+    {
+      title: "Get Product's Catalog",
+      description: "Get the catalog that a product belongs to.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { product_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Catalog>(`products/${params.product_id}/catalog.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const c = d as Catalog;
+          return `# Product Catalog\n\n- **${c.name}** (ID: ${c.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_product_variant",
+    {
+      title: "Get Product Variant",
+      description: "Get details for a specific product variant.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID"),
+        variant_id: z.number().int().describe("The variant ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { product_id: number; variant_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`products/${params.product_id}/variants/${params.variant_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const v = d as { id: number; name: string; [key: string]: unknown };
+          return `# Product Variant\n\n- **${v.name || `Variant ${v.id}`}** (ID: ${v.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_create_variant",
+    {
+      title: "Create Product Variant",
+      description: "Create a new variant for a product.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID"),
+        name: z.string().optional().describe("Variant name"),
+        variant_dimension_options: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Variant dimension option IDs and values"),
+        product_custom_attributes: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Custom attribute ID/value pairs"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: {
+      product_id: number;
+      name?: string;
+      variant_dimension_options?: { id: number; value: string }[];
+      product_custom_attributes?: { id: number; value: string }[];
+      response_format: ResponseFormat;
+    }) => {
+      try {
+        const body: Record<string, unknown> = {};
+        if (params.name) body.name = params.name;
+        if (params.variant_dimension_options) body.variant_dimension_options = params.variant_dimension_options;
+        if (params.product_custom_attributes) body.product_custom_attributes = params.product_custom_attributes;
+
+        const data = await apiRequest<unknown>(`products/${params.product_id}/variants.json`, "POST", body);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const v = d as { id: number; name: string; [key: string]: unknown };
+          return `# Variant Created\n\n- **${v.name || `Variant ${v.id}`}** (ID: ${v.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_variant",
+    {
+      title: "Update Product Variant",
+      description: "Update a product variant.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID"),
+        variant_id: z.number().int().describe("The variant ID to update"),
+        name: z.string().optional().describe("New variant name"),
+        variant_dimension_options: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Updated dimension option IDs and values"),
+        product_custom_attributes: z
+          .array(z.object({ id: z.number().int(), value: z.string() }))
+          .optional()
+          .describe("Updated custom attribute ID/value pairs"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: {
+      product_id: number;
+      variant_id: number;
+      name?: string;
+      variant_dimension_options?: { id: number; value: string }[];
+      product_custom_attributes?: { id: number; value: string }[];
+      response_format: ResponseFormat;
+    }) => {
+      try {
+        const body: Record<string, unknown> = {};
+        if (params.name) body.name = params.name;
+        if (params.variant_dimension_options) body.variant_dimension_options = params.variant_dimension_options;
+        if (params.product_custom_attributes) body.product_custom_attributes = params.product_custom_attributes;
+
+        const data = await apiRequest<unknown>(`products/${params.product_id}/variants/${params.variant_id}.json`, "PATCH", body);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const v = d as { id: number; name: string; [key: string]: unknown };
+          return `# Variant Updated\n\n- **${v.name || `Variant ${v.id}`}** (ID: ${v.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_delete_variant",
+    {
+      title: "Delete Product Variant",
+      description: "Delete a product variant.",
+      inputSchema: {
+        product_id: z.number().int().describe("The product ID"),
+        variant_id: z.number().int().describe("The variant ID to delete"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: { product_id: number; variant_id: number }) => {
+      try {
+        await apiRequest(`products/${params.product_id}/variants/${params.variant_id}.json`, "DELETE");
+        return { content: [{ type: "text", text: `Variant ${params.variant_id} deleted.` }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
     "ir_delete_product",
     {
       title: "Delete Product",
@@ -242,16 +480,89 @@ export function registerProductTools(server: McpServer): void {
       description: "Create a new product catalog.",
       inputSchema: {
         name: z.string().min(1).describe("Catalog name"),
+        summary: z.string().optional().describe("Catalog summary/description"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    async (params: { name: string; response_format: ResponseFormat }) => {
+    async (params: { name: string; summary?: string; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Catalog>("product_catalogs.json", "POST", { name: params.name });
+        const body: Record<string, unknown> = { name: params.name };
+        if (params.summary) body.summary = params.summary;
+        const data = await apiRequest<Catalog>("product_catalogs.json", "POST", body);
         const text = formatResponse(data, params.response_format, (d) => {
           const c = d as Catalog;
           return `# Catalog Created\n\n- **${c.name}** (ID: ${c.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_catalog",
+    {
+      title: "Update Catalog",
+      description: "Update a product catalog's name.",
+      inputSchema: {
+        catalog_id: z.number().int().describe("The catalog ID to update"),
+        name: z.string().min(1).describe("New catalog name"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { catalog_id: number; name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Catalog>(`product_catalogs/${params.catalog_id}.json`, "PUT", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const c = d as Catalog;
+          return `# Catalog Updated\n\n- **${c.name}** (ID: ${c.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_delete_catalog",
+    {
+      title: "Delete Catalog",
+      description: "Delete a product catalog.",
+      inputSchema: { catalog_id: z.number().int().describe("The catalog ID to delete") },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: { catalog_id: number }) => {
+      try {
+        await apiRequest(`product_catalogs/${params.catalog_id}.json`, "DELETE");
+        return { content: [{ type: "text", text: `Catalog ${params.catalog_id} deleted.` }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_catalog_products",
+    {
+      title: "Get Catalog Products",
+      description: "List all products in a specific catalog.",
+      inputSchema: {
+        catalog_id: z.number().int().describe("The catalog ID"),
+        ...PaginationSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { catalog_id: number; page: number; response_format: ResponseFormat }) => {
+      try {
+        const result = await apiListRequest<Product>(`product_catalogs/${params.catalog_id}/products.json`, { page: params.page });
+        const text = formatResponse(result.data, params.response_format, (d) => {
+          const products = d as Product[];
+          if (!products.length) return "No products in this catalog.";
+          return [`# Catalog ${params.catalog_id} Products (Page ${params.page})`, "", ...products.map((p) => formatProduct(p) + "\n")].join("\n") + formatPaginationHint(result.pagination);
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {
@@ -284,6 +595,31 @@ export function registerProductTools(server: McpServer): void {
     }
   );
 
+  server.registerTool(
+    "ir_get_category",
+    {
+      title: "Get Product Category",
+      description: "Get details for a specific product category.",
+      inputSchema: {
+        category_id: z.number().int().describe("The category ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { category_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Category>(`product_categories/${params.category_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const c = d as Category;
+          return `# Product Category\n\n- **${c.name}** (ID: ${c.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
   // Templates
   server.registerTool(
     "ir_get_templates",
@@ -301,6 +637,231 @@ export function registerProductTools(server: McpServer): void {
           if (!templates.length) return "No templates found.";
           return ["# Product Templates", "", ...templates.map((t) => `- **${t.name}** (ID: ${t.id})`)].join("\n");
         });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_template",
+    {
+      title: "Get Product Template",
+      description: "Get details for a specific product template.",
+      inputSchema: {
+        template_id: z.number().int().describe("The template ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { template_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_templates/${params.template_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const t = d as { id: number; name: string; [key: string]: unknown };
+          return `# Product Template\n\n- **${t.name}** (ID: ${t.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_create_template",
+    {
+      title: "Create Product Template",
+      description: "Create a new product template.",
+      inputSchema: {
+        name: z.string().min(1).describe("Template name"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: { name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>("product_templates.json", "POST", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const t = d as { id: number; name: string; [key: string]: unknown };
+          return `# Template Created\n\n- **${t.name}** (ID: ${t.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_template",
+    {
+      title: "Update Product Template",
+      description: "Update a product template's name.",
+      inputSchema: {
+        template_id: z.number().int().describe("The template ID to update"),
+        name: z.string().min(1).describe("New template name"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { template_id: number; name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_templates/${params.template_id}.json`, "PUT", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const t = d as { id: number; name: string; [key: string]: unknown };
+          return `# Template Updated\n\n- **${t.name}** (ID: ${t.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_channel_template_mappings",
+    {
+      title: "Get Channel Template Mappings",
+      description: "Get channel template mappings for a product channel template.",
+      inputSchema: {
+        channel_template_id: z.number().int().describe("The channel template ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { channel_template_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_channel_template_mappings/${params.channel_template_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) =>
+          `# Channel Template Mappings\n\n\`\`\`json\n${JSON.stringify(d, null, 2)}\n\`\`\``
+        );
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  // Dimensions
+  server.registerTool(
+    "ir_get_dimensions",
+    {
+      title: "List Dimensions",
+      description: "List all product dimensions.",
+      inputSchema: { ...IdParamSchema },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown[]>("product_dimensions.json");
+        const text = formatResponse(data, params.response_format, (d) => {
+          const dims = d as { id: number; name: string; [key: string]: unknown }[];
+          if (!dims.length) return "No dimensions found.";
+          return ["# Product Dimensions", "", ...dims.map((dim) => `- **${dim.name}** (ID: ${dim.id})`)].join("\n");
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_dimension",
+    {
+      title: "Get Dimension",
+      description: "Get details for a specific product dimension.",
+      inputSchema: {
+        dimension_id: z.number().int().describe("The dimension ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { dimension_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_dimensions/${params.dimension_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const dim = d as { id: number; name: string; [key: string]: unknown };
+          return `# Product Dimension\n\n- **${dim.name}** (ID: ${dim.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_create_dimension",
+    {
+      title: "Create Dimension",
+      description: "Create a new product dimension.",
+      inputSchema: {
+        name: z.string().min(1).describe("Dimension name"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: { name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>("product_dimensions.json", "POST", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const dim = d as { id: number; name: string; [key: string]: unknown };
+          return `# Dimension Created\n\n- **${dim.name}** (ID: ${dim.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_update_dimension",
+    {
+      title: "Update Dimension",
+      description: "Update a product dimension's name.",
+      inputSchema: {
+        dimension_id: z.number().int().describe("The dimension ID to update"),
+        name: z.string().min(1).describe("New dimension name"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { dimension_id: number; name: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_dimensions/${params.dimension_id}.json`, "PUT", { name: params.name });
+        const text = formatResponse(data, params.response_format, (d) => {
+          const dim = d as { id: number; name: string; [key: string]: unknown };
+          return `# Dimension Updated\n\n- **${dim.name}** (ID: ${dim.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_add_dimension_option",
+    {
+      title: "Add Dimension Option",
+      description: "Add an option value to a product dimension.",
+      inputSchema: {
+        dimension_id: z.number().int().describe("The dimension ID"),
+        value: z.string().min(1).describe("The option value to add"),
+        response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    async (params: { dimension_id: number; value: string; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<unknown>(`product_dimensions/${params.dimension_id}/add_option.json`, "POST", { value: params.value });
+        const text = formatResponse(data, params.response_format, (d) =>
+          `# Dimension Option Added\n\n\`\`\`json\n${JSON.stringify(d, null, 2)}\n\`\`\``
+        );
         return { content: [{ type: "text", text }] };
       } catch (error) {
         return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };

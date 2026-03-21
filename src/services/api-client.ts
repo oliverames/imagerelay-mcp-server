@@ -102,7 +102,7 @@ async function requestWithRetry<T>(config: AxiosRequestConfig): Promise<AxiosRes
 
 export async function apiRequest<T>(
   endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   data?: unknown,
   params?: Record<string, unknown>
 ): Promise<T> {

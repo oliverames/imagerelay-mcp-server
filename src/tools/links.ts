@@ -49,6 +49,31 @@ export function registerLinkTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "ir_get_folder_link",
+    {
+      title: "Get Folder Link",
+      description: "Get details for a specific folder link by ID.",
+      inputSchema: {
+        folder_link_id: z.number().int().describe("The folder link ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { folder_link_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<FolderLink>(`folder_links/${params.folder_link_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const l = d as FolderLink;
+          return `# Folder Link\n\n- **ID**: ${l.id}\n- **Folder**: ${l.folder_id}\n- **UID**: ${l.uid}\n- **Created**: ${formatDate(l.created_at)}`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
     "ir_create_folder_link",
     {
       title: "Create Folder Link",
@@ -119,6 +144,31 @@ export function registerLinkTools(server: McpServer): void {
           return [`# Upload Links (Page ${params.page})`, "",
             ...links.map((l) => `- **Link ${l.id}** — Folder ${l.folder_id}, Created ${formatDate(l.created_at)}`)
           ].join("\n") + formatPaginationHint(result.pagination);
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
+    "ir_get_upload_link",
+    {
+      title: "Get Upload Link",
+      description: "Get details for a specific upload link by ID.",
+      inputSchema: {
+        upload_link_id: z.number().int().describe("The upload link ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { upload_link_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<UploadLink>(`upload_links/${params.upload_link_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const l = d as UploadLink;
+          return `# Upload Link\n\n- **ID**: ${l.id}\n- **Folder**: ${l.folder_id}\n- **UID**: ${l.uid}\n- **Created**: ${formatDate(l.created_at)}`;
         });
         return { content: [{ type: "text", text }] };
       } catch (error) {

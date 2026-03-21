@@ -94,4 +94,28 @@ describe("Link Tools", () => {
       expect(result.content[0].text).toContain("deleted");
     });
   });
+
+  describe("ir_get_folder_link", () => {
+    it("gets a single folder link", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, uid: "fl-abc", folder_id: 100, created_at: "2024-01-01T00:00:00Z" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_folder_link"];
+      const result = await tool.handler({ folder_link_id: 1, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Folder Link");
+      expect(result.content[0].text).toContain("fl-abc");
+      expect(mockRequest).toHaveBeenCalledWith("folder_links/1.json");
+    });
+  });
+
+  describe("ir_get_upload_link", () => {
+    it("gets a single upload link", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 10, uid: "ul-abc", folder_id: 100, created_at: "2024-02-01T00:00:00Z" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_upload_link"];
+      const result = await tool.handler({ upload_link_id: 10, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Upload Link");
+      expect(result.content[0].text).toContain("ul-abc");
+      expect(mockRequest).toHaveBeenCalledWith("upload_links/10.json");
+    });
+  });
 });
