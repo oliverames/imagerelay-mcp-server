@@ -1,5 +1,24 @@
 # Worklog
 
+## 2026-03-21 — README, MCP connector sync, Fantastical integration
+
+**What changed**: Created comprehensive GitHub README with marketing-forward design (centered logo, badge bar, 96-tool reference across 16 collapsible sections). Added Image Relay + META MCP servers to dotfiles config (manifest.json, productivity.json) and chat sync script (sync-connectors-to-chat) with logo PNGs. Installed Image Relay as DXT extension in Claude Chat. Added Fantastical MCP to Claude Code via the DXT binary already installed in Claude Chat. Updated credentials/apple README to reflect distribution.p12 now present. All 4 repos (imagerelay-mcp-server, dotfiles, scripts, credentials) committed and pushed.
+
+**Decisions made**:
+- Image Relay env var mapping: `IMAGERELAY_API_KEY` (process env) mapped from `IMAGE_RELAY_API_KEY` (settings.json key) — names differ because the settings key predated the server code.
+- META excluded from Claude Chat install since no access tokens are configured yet — script will pick it up automatically when tokens are added.
+- Fantastical added to Claude Code by pointing directly to the DXT binary at `~/Library/Application Support/Claude/Claude Extensions/ant.dir.gh.flexibits.fantastical-mcp/server/FantasticalMCP.app/Contents/MacOS/FantasticalMCP`.
+
+**Left off at**: Everything is deployed and working. Remaining items:
+- Exclude `*.test.*` files from npm tarball (they compile to dist/ and ship unnecessarily — add a `tsconfig.build.json` or tweak `files` in package.json)
+- Add META access tokens to settings.json when ready, then re-run `osascript ~/Developer/scripts/sync-connectors-to-chat` to install
+- Consider adding Image Relay `update-asset-thumbnail` if binary upload support is ever needed
+
+**Open questions**:
+- Fantastical DXT path is hardcoded to the Chat extension directory — if the extension updates, the binary path could change. May want a symlink or lookup.
+
+---
+
 ## 2026-03-21 — Complete API coverage: 33 new endpoints, bug fixes, npm 2.0.0 publish
 
 **What changed**: Expanded from ~57 to ~91 MCP tools covering the entire Image Relay API (except binary uploads and chunked file uploads which aren't MCP-compatible). Added 3 new tool modules (invited-users, permissions, custom-attributes) and significantly expanded products.ts with variants, dimensions, templates, and catalog CRUD. Fixed 5 endpoint bugs found by cross-referencing scraped docs against live API. Bumped to v2.0.0 and published to npm. Test suite grew from 104 to 131 tests.
