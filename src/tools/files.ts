@@ -649,14 +649,10 @@ export function registerFileTools(server: McpServer): void {
       response_format: ResponseFormat;
     }) => {
       try {
-        const fileObj: Record<string, unknown> = {
-          file_name: params.file_name,
-          file_size: params.file_size,
-        };
         const body: Record<string, unknown> = {
           folder_id: params.folder_id,
           file_type_id: params.file_type_id,
-          files: [fileObj],
+          files: [{ file_name: params.file_name, file_size: params.file_size }],
         };
         if (params.prefix) body.prefix = params.prefix;
         if (params.terms) body.terms = params.terms;
@@ -710,6 +706,8 @@ export function registerFileTools(server: McpServer): void {
           } else if (job.finished) {
             lines.push("- **Status**: Complete");
             if (job.asset_id) lines.push(`- **Asset ID**: ${job.asset_id}`);
+          } else {
+            lines.push("- **Status**: Processing");
           }
           return lines.join("\n");
         });
