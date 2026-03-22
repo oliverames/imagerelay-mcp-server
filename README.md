@@ -165,7 +165,7 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 | `ir_get_quick_links` | List all download/share links |
 | `ir_get_quick_link` | Get a specific quick link |
 | `ir_get_user_quick_links` | List quick links for a specific user |
-| `ir_create_quick_link` | Create a download link for a file |
+| `ir_create_quick_link` | Create a download link with optional image transforms (resize, format, DPI) |
 | `ir_delete_quick_link` | Delete a quick link |
 
 </details>
@@ -231,7 +231,7 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 | `ir_get_catalogs` | List all product catalogs |
 | `ir_get_catalog` | Get a specific catalog by ID |
 | `ir_create_catalog` | Create a catalog with optional summary |
-| `ir_update_catalog` | Rename a catalog |
+| `ir_update_catalog` | Update a catalog's name and/or summary |
 | `ir_delete_catalog` | Delete a catalog |
 | `ir_get_catalog_products` | List products in a catalog |
 
@@ -290,7 +290,7 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 |------|-------------|
 | `ir_get_invited_users` | List pending invitations |
 | `ir_get_invited_user` | Get a specific invitation |
-| `ir_invite_user` | Invite a new user |
+| `ir_invite_user` | Invite a new user with optional custom fields |
 | `ir_delete_invited_user` | Cancel an invitation |
 | `ir_create_sso_user` | Create a user via SSO |
 
@@ -358,19 +358,21 @@ npm run build
 
 ## API Coverage
 
-This server implements the full [Image Relay API v2](https://image-relay-api.readme.io/reference) with two intentional exceptions:
+This server implements the full [Image Relay API v2](https://image-relay-api.readme.io/reference). Every JSON endpoint is covered — the only gaps are three endpoints that require binary request bodies, which MCP's JSON protocol cannot send:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Library API (files, folders, collections) | Complete | All endpoints |
-| Sharing (quick links, folder links, upload links) | Complete | All endpoints |
+| Sharing (quick links, folder links, upload links) | Complete | All endpoints, quick links include image transforms |
 | Keywording & metadata | Complete | All endpoints |
-| Users, permissions, invitations | Complete | All endpoints |
+| Users, permissions, invitations | Complete | All endpoints including custom fields |
 | Webhooks | Complete | All endpoints |
 | PIM (products, variants, catalogs, dimensions) | Complete | All endpoints |
 | Custom attributes & templates | Complete | All endpoints |
-| Chunked file uploads | Not included | Multi-step stateful workflow; use `ir_upload_file_from_url` instead |
-| Update asset thumbnail | Not included | Requires binary upload (`application/octet-stream`) |
+| Upload job management | Complete | Create jobs + check status; binary chunk upload requires external HTTP client |
+| File version management | Complete | Get UUID + complete version; binary chunk upload requires external HTTP client |
+| Binary chunk uploads | Not possible | MCP protocol is JSON-only; use an HTTP client for the chunk POST |
+| Update asset thumbnail | Not possible | Requires `application/octet-stream` binary body |
 
 ## License
 
