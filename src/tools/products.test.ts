@@ -73,6 +73,29 @@ describe("Product Tools", () => {
         has_variants: true,
       });
     });
+
+    it("passes dimension IDs when provided", async () => {
+      mockRequest.mockResolvedValueOnce({ ...MOCK_PRODUCT, id: 602 });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_product"];
+      await tool.handler({
+        name: "Sized Widget",
+        dimension1_id: 10,
+        dimension1_name: "Size",
+        dimension1_value: "Large",
+        dimension2_id: 20,
+        response_format: "json",
+      });
+      expect(mockRequest).toHaveBeenCalledWith("products.json", "POST",
+        expect.objectContaining({
+          name: "Sized Widget",
+          dimension1_id: 10,
+          dimension1_name: "Size",
+          dimension1_value: "Large",
+          dimension2_id: 20,
+        })
+      );
+    });
   });
 
   describe("ir_get_product_variants", () => {
@@ -116,6 +139,17 @@ describe("Product Tools", () => {
       const result = await tool.handler({ response_format: "markdown" });
       expect(result.content[0].text).toContain("Spring 2024");
       expect(result.content[0].text).toContain("ID: 1");
+    });
+  });
+
+  describe("ir_get_catalog", () => {
+    it("gets a single catalog", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, name: "Spring 2025" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_get_catalog"];
+      const result = await tool.handler({ catalog_id: 1, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Spring 2025");
+      expect(mockRequest).toHaveBeenCalledWith("product_catalogs/1.json");
     });
   });
 
@@ -169,6 +203,14 @@ describe("Product Tools", () => {
       const result = await tool.handler({ catalog_id: 1, name: "Winter 2024", response_format: "markdown" });
       expect(result.content[0].text).toContain("Catalog Updated");
       expect(mockRequest).toHaveBeenCalledWith("product_catalogs/1.json", "PUT", { name: "Winter 2024" });
+    });
+
+    it("passes summary when provided", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 1, name: "Winter 2024" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_update_catalog"];
+      await tool.handler({ catalog_id: 1, name: "Winter 2024", summary: "Holiday season catalog", response_format: "markdown" });
+      expect(mockRequest).toHaveBeenCalledWith("product_catalogs/1.json", "PUT", { name: "Winter 2024", summary: "Holiday season catalog" });
     });
   });
 

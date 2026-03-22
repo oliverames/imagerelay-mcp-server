@@ -115,10 +115,13 @@ export function registerProductTools(server: McpServer): void {
         has_variants: z.boolean().optional().describe("Whether the product has variants"),
         dimension1_name: z.string().optional().describe("Name for dimension 1 (e.g. 'Size')"),
         dimension1_value: z.string().optional().describe("Value for dimension 1"),
+        dimension1_id: z.number().int().optional().describe("ID for an existing dimension 1"),
         dimension2_name: z.string().optional().describe("Name for dimension 2 (e.g. 'Color')"),
         dimension2_value: z.string().optional().describe("Value for dimension 2"),
+        dimension2_id: z.number().int().optional().describe("ID for an existing dimension 2"),
         dimension3_name: z.string().optional().describe("Name for dimension 3"),
         dimension3_value: z.string().optional().describe("Value for dimension 3"),
+        dimension3_id: z.number().int().optional().describe("ID for an existing dimension 3"),
         product_custom_attributes: z
           .array(z.object({ id: z.number().int(), value: z.string() }))
           .optional()
@@ -135,10 +138,13 @@ export function registerProductTools(server: McpServer): void {
       has_variants?: boolean;
       dimension1_name?: string;
       dimension1_value?: string;
+      dimension1_id?: number;
       dimension2_name?: string;
       dimension2_value?: string;
+      dimension2_id?: number;
       dimension3_name?: string;
       dimension3_value?: string;
+      dimension3_id?: number;
       product_custom_attributes?: { id: number; value: string }[];
       response_format: ResponseFormat;
     }) => {
@@ -150,10 +156,13 @@ export function registerProductTools(server: McpServer): void {
         if (params.has_variants !== undefined) body.has_variants = params.has_variants;
         if (params.dimension1_name) body.dimension1_name = params.dimension1_name;
         if (params.dimension1_value) body.dimension1_value = params.dimension1_value;
+        if (params.dimension1_id) body.dimension1_id = params.dimension1_id;
         if (params.dimension2_name) body.dimension2_name = params.dimension2_name;
         if (params.dimension2_value) body.dimension2_value = params.dimension2_value;
+        if (params.dimension2_id) body.dimension2_id = params.dimension2_id;
         if (params.dimension3_name) body.dimension3_name = params.dimension3_name;
         if (params.dimension3_value) body.dimension3_value = params.dimension3_value;
+        if (params.dimension3_id) body.dimension3_id = params.dimension3_id;
         if (params.product_custom_attributes) body.product_custom_attributes = params.product_custom_attributes;
 
         const data = await apiRequest<Product>("products.json", "POST", body);
@@ -474,6 +483,31 @@ export function registerProductTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "ir_get_catalog",
+    {
+      title: "Get Catalog",
+      description: "Get details for a specific product catalog by ID.",
+      inputSchema: {
+        catalog_id: z.number().int().describe("The catalog ID"),
+        ...IdParamSchema,
+      },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async (params: { catalog_id: number; response_format: ResponseFormat }) => {
+      try {
+        const data = await apiRequest<Catalog>(`product_catalogs/${params.catalog_id}.json`);
+        const text = formatResponse(data, params.response_format, (d) => {
+          const c = d as Catalog;
+          return `# Catalog\n\n- **${c.name}** (ID: ${c.id})`;
+        });
+        return { content: [{ type: "text", text }] };
+      } catch (error) {
+        return { isError: true, content: [{ type: "text", text: handleApiError(error) }] };
+      }
+    }
+  );
+
+  server.registerTool(
     "ir_create_catalog",
     {
       title: "Create Catalog",
@@ -505,17 +539,20 @@ export function registerProductTools(server: McpServer): void {
     "ir_update_catalog",
     {
       title: "Update Catalog",
-      description: "Update a product catalog's name.",
+      description: "Update a product catalog's name and/or summary.",
       inputSchema: {
         catalog_id: z.number().int().describe("The catalog ID to update"),
         name: z.string().min(1).describe("New catalog name"),
+        summary: z.string().optional().describe("New catalog summary/description"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
-    async (params: { catalog_id: number; name: string; response_format: ResponseFormat }) => {
+    async (params: { catalog_id: number; name: string; summary?: string; response_format: ResponseFormat }) => {
       try {
-        const data = await apiRequest<Catalog>(`product_catalogs/${params.catalog_id}.json`, "PUT", { name: params.name });
+        const body: Record<string, unknown> = { name: params.name };
+        if (params.summary) body.summary = params.summary;
+        const data = await apiRequest<Catalog>(`product_catalogs/${params.catalog_id}.json`, "PUT", body);
         const text = formatResponse(data, params.response_format, (d) => {
           const c = d as Catalog;
           return `# Catalog Updated\n\n- **${c.name}** (ID: ${c.id})`;

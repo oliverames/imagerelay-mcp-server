@@ -82,6 +82,10 @@ export function registerInvitedUserTools(server: McpServer): void {
         email: z.string().email().describe("Email address"),
         company: z.string().optional().describe("Company name"),
         permission_id: z.number().int().describe("Permission group ID to assign"),
+        custom_field_one: z.string().optional().describe("Custom field 1 value"),
+        custom_field_two: z.string().optional().describe("Custom field 2 value"),
+        custom_field_three: z.string().optional().describe("Custom field 3 value"),
+        custom_field_four: z.string().optional().describe("Custom field 4 value"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -92,6 +96,10 @@ export function registerInvitedUserTools(server: McpServer): void {
       email: string;
       company?: string;
       permission_id: number;
+      custom_field_one?: string;
+      custom_field_two?: string;
+      custom_field_three?: string;
+      custom_field_four?: string;
       response_format: ResponseFormat;
     }) => {
       try {
@@ -102,6 +110,10 @@ export function registerInvitedUserTools(server: McpServer): void {
           permission_id: params.permission_id,
         };
         if (params.company) body.company = params.company;
+        if (params.custom_field_one) body.custom_field_one = params.custom_field_one;
+        if (params.custom_field_two) body.custom_field_two = params.custom_field_two;
+        if (params.custom_field_three) body.custom_field_three = params.custom_field_three;
+        if (params.custom_field_four) body.custom_field_four = params.custom_field_four;
 
         const data = await apiRequest<InvitedUser>("invited_users.json", "POST", body);
         const text = formatResponse(data, params.response_format, (d) => `# User Invited\n\n${formatInvitedUser(d as InvitedUser)}`);

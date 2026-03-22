@@ -6,14 +6,14 @@
 
 <p align="center">
   <strong>The complete Model Context Protocol server for Image Relay's digital asset management platform.</strong><br/>
-  96 tools spanning files, folders, collections, products, users, permissions, and more.
+  101 tools spanning files, folders, collections, products, users, permissions, and more.
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/imagerelay-mcp-server"><img src="https://img.shields.io/npm/v/imagerelay-mcp-server?color=%23C47432&label=npm" alt="npm version" /></a>
   <a href="https://image-relay-api.readme.io/reference"><img src="https://img.shields.io/badge/API-v2-blue" alt="API v2" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tools-96-success" alt="96 tools" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-131-brightgreen" alt="131 tests" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tools-101-success" alt="101 tools" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-142-brightgreen" alt="142 tests" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-purple" alt="MCP compatible" /></a>
 </p>
 
@@ -87,7 +87,7 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 ### Library Management
 
 <details>
-<summary><strong>Files</strong> — 11 tools</summary>
+<summary><strong>Files</strong> — 15 tools</summary>
 
 | Tool | Description |
 |------|-------------|
@@ -102,6 +102,10 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 | `ir_delete_file` | Delete a file |
 | `ir_get_file_types` | List all metadata templates |
 | `ir_get_file_type` | Get a specific metadata template |
+| `ir_create_upload_job` | Create a chunked upload job for large files |
+| `ir_check_upload_job_status` | Check the status of a chunked upload job |
+| `ir_create_file_version` | Start a version update (get upload UUID) |
+| `ir_complete_file_version` | Complete a file version upload after chunks are sent |
 
 </details>
 
@@ -220,11 +224,12 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 </details>
 
 <details>
-<summary><strong>Catalogs</strong> — 5 tools</summary>
+<summary><strong>Catalogs</strong> — 6 tools</summary>
 
 | Tool | Description |
 |------|-------------|
 | `ir_get_catalogs` | List all product catalogs |
+| `ir_get_catalog` | Get a specific catalog by ID |
 | `ir_create_catalog` | Create a catalog with optional summary |
 | `ir_update_catalog` | Rename a catalog |
 | `ir_delete_catalog` | Delete a catalog |
@@ -318,7 +323,7 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 
 ## Features
 
-- **Complete API coverage** — 96 tools covering every JSON endpoint in Image Relay's v2 API
+- **Complete API coverage** — 101 tools covering every JSON endpoint in Image Relay's v2 API
 - **Smart pagination** — Handles both response-body and Link-header pagination automatically
 - **Retry with backoff** — Automatic retry on 429/502/503 with exponential backoff and Retry-After support
 - **Dual output formats** — Every tool supports `markdown` (human-friendly) and `json` (machine-friendly) output

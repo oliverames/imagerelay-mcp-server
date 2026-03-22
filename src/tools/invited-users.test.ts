@@ -64,6 +64,25 @@ describe("invited-users tools", () => {
     expect(mockRequest).toHaveBeenCalledWith("invited_users.json", "POST", expect.objectContaining({ email: "new@example.com" }));
   });
 
+  it("ir_invite_user passes custom fields when provided", async () => {
+    mockRequest.mockResolvedValue(MOCK_INVITED_USER);
+    await server.call("ir_invite_user", {
+      first_name: "New",
+      last_name: "User",
+      email: "new@example.com",
+      permission_id: 3,
+      custom_field_one: "Department A",
+      custom_field_three: "Region West",
+      response_format: "markdown",
+    });
+    expect(mockRequest).toHaveBeenCalledWith("invited_users.json", "POST",
+      expect.objectContaining({
+        custom_field_one: "Department A",
+        custom_field_three: "Region West",
+      })
+    );
+  });
+
   it("ir_delete_invited_user deletes an invited user", async () => {
     mockRequest.mockResolvedValue(undefined);
     const result = await server.call("ir_delete_invited_user", { invited_user_id: 10 });

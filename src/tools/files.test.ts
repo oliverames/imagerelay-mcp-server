@@ -298,4 +298,107 @@ describe("File Tools", () => {
       expect(mockRequest).toHaveBeenCalledWith("files/500/synced_file.json", "POST", { folder_ids: ["200", "300"] });
     });
   });
+
+  describe("ir_create_upload_job", () => {
+    it("creates an upload job", async () => {
+      const mockJob = { id: 999, files: [{ id: 1001 }] };
+      mockRequest.mockResolvedValueOnce(mockJob);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_upload_job"];
+      const result = await tool.handler({
+        folder_id: 100,
+        file_type_id: 10,
+        file_name: "video.mp4",
+        file_size: 50000000,
+        response_format: "markdown",
+      });
+      expect(result.content[0].text).toContain("Upload Job Created");
+      expect(result.content[0].text).toContain("999");
+      expect(result.content[0].text).toContain("1001");
+      expect(mockRequest).toHaveBeenCalledWith("upload_jobs.json", "POST", {
+        folder_id: 100,
+        file_type_id: 10,
+        files: [{ file_name: "video.mp4", file_size: 50000000 }],
+      });
+    });
+
+    it("passes optional params when provided", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 999, files: [{ id: 1001 }] });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_upload_job"];
+      await tool.handler({
+        folder_id: 100,
+        file_type_id: 10,
+        file_name: "video.mp4",
+        file_size: 50000000,
+        prefix: "subfolder",
+        terms: [{ term_id: 1, value: "Test" }],
+        expires_on: "2025-12-31",
+        keyword_ids: [5, 10],
+        response_format: "json",
+      });
+      expect(mockRequest).toHaveBeenCalledWith("upload_jobs.json", "POST", {
+        folder_id: 100,
+        file_type_id: 10,
+        files: [{ file_name: "video.mp4", file_size: 50000000 }],
+        prefix: "subfolder",
+        terms: [{ term_id: 1, value: "Test" }],
+        expires_on: "2025-12-31",
+        keyword_ids: [5, 10],
+      });
+    });
+  });
+
+  describe("ir_check_upload_job_status", () => {
+    it("shows processing status", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 999, finished: null, asset_id: null });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_check_upload_job_status"];
+      const result = await tool.handler({ upload_job_id: 999, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Processing");
+      expect(mockRequest).toHaveBeenCalledWith("upload_jobs/999.json");
+    });
+
+    it("shows complete status with asset_id", async () => {
+      mockRequest.mockResolvedValueOnce({ id: 999, finished: true, asset_id: 500 });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_check_upload_job_status"];
+      const result = await tool.handler({ upload_job_id: 999, response_format: "markdown" });
+      expect(result.content[0].text).toContain("Complete");
+      expect(result.content[0].text).toContain("500");
+    });
+  });
+
+  describe("ir_create_file_version", () => {
+    it("creates a file version and returns UUID", async () => {
+      mockRequest.mockResolvedValueOnce({ uuid: "abc-def-ghi-jkl" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_file_version"];
+      const result = await tool.handler({ file_id: 500, response_format: "markdown" });
+      expect(result.content[0].text).toContain("abc-def-ghi-jkl");
+      expect(result.content[0].text).toContain("Version Upload Started");
+      expect(mockRequest).toHaveBeenCalledWith("files/500/versions.json", "POST");
+    });
+  });
+
+  describe("ir_complete_file_version", () => {
+    it("completes a file version upload", async () => {
+      mockRequest.mockResolvedValueOnce({ status: "processing" });
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_complete_file_version"];
+      const result = await tool.handler({
+        file_id: 500,
+        v4_uuid: "abc-def-ghi-jkl",
+        file_name: "image.png",
+        chunk_count: 3,
+        response_format: "markdown",
+      });
+      expect(result.content[0].text).toContain("Version Upload Complete");
+      expect(mockRequest).toHaveBeenCalledWith(
+        "files/500/versions/abc-def-ghi-jkl/complete.json",
+        "POST",
+        { file_name: "image.png", chunk_count: 3 }
+      );
+    });
+  });
 });

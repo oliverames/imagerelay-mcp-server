@@ -104,18 +104,43 @@ export function registerQuickLinkTools(server: McpServer): void {
     "ir_create_quick_link",
     {
       title: "Create Quick Link",
-      description: "Create a download/share link for a file (asset).",
+      description:
+        "Create a download/share link for a file (asset). Supports optional image transformations like resizing, format conversion, and DPI adjustment.",
       inputSchema: {
         asset_id: z.number().int().describe("The file/asset ID to create a link for"),
-        purpose: z.string().optional().describe("Purpose of the link (e.g. 'download', 'embed')"),
+        purpose: z.string().describe("Purpose/intent for the quick link"),
+        expires: z.string().optional().describe("Expiration date (YYYY-MM-DD)"),
+        max_width: z.number().int().optional().describe("Max image width in pixels (downsizing only)"),
+        max_height: z.number().int().optional().describe("Max image height in pixels (downsizing only)"),
+        format: z.string().optional().describe("Output format: 'png' or 'jpg'"),
+        dpi: z.number().int().optional().describe("Desired resolution in dots per inch"),
+        disposition: z.string().optional().describe("'inline' (embed in webpage) or 'attachment' (download)"),
+        color_format: z.string().optional().describe("Color space: 'rgb' or 'cmyk'"),
         response_format: z.nativeEnum(ResponseFormat).default(ResponseFormat.MARKDOWN).describe("Output format"),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    async (params: { asset_id: number; purpose?: string; response_format: ResponseFormat }) => {
+    async (params: {
+      asset_id: number;
+      purpose: string;
+      expires?: string;
+      max_width?: number;
+      max_height?: number;
+      format?: string;
+      dpi?: number;
+      disposition?: string;
+      color_format?: string;
+      response_format: ResponseFormat;
+    }) => {
       try {
-        const body: Record<string, unknown> = { asset_id: params.asset_id };
-        if (params.purpose) body.purpose = params.purpose;
+        const body: Record<string, unknown> = { asset_id: params.asset_id, purpose: params.purpose };
+        if (params.expires) body.expires = params.expires;
+        if (params.max_width) body.max_width = params.max_width;
+        if (params.max_height) body.max_height = params.max_height;
+        if (params.format) body.format = params.format;
+        if (params.dpi) body.dpi = params.dpi;
+        if (params.disposition) body.disposition = params.disposition;
+        if (params.color_format) body.color_format = params.color_format;
         const data = await apiRequest<QuickLink>("quick_links.json", "POST", body);
         const text = formatResponse(data, params.response_format, (d) => `# Quick Link Created\n\n${formatQuickLink(d as QuickLink)}`);
         return { content: [{ type: "text", text }] };

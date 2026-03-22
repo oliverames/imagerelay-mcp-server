@@ -55,6 +55,35 @@ describe("Quick Link Tools", () => {
       expect(result.content[0].text).toContain("Quick Link Created");
       expect(mockRequest).toHaveBeenCalledWith("quick_links.json", "POST", { asset_id: 500, purpose: "download" });
     });
+
+    it("passes image transformation params when provided", async () => {
+      mockRequest.mockResolvedValueOnce(MOCK_QUICK_LINK);
+      const server = createServer();
+      const tool = (server as any)._registeredTools["ir_create_quick_link"];
+      await tool.handler({
+        asset_id: 500,
+        purpose: "embed",
+        max_width: 800,
+        max_height: 600,
+        format: "jpg",
+        dpi: 72,
+        disposition: "inline",
+        color_format: "rgb",
+        expires: "2025-12-31",
+        response_format: "json",
+      });
+      expect(mockRequest).toHaveBeenCalledWith("quick_links.json", "POST", {
+        asset_id: 500,
+        purpose: "embed",
+        max_width: 800,
+        max_height: 600,
+        format: "jpg",
+        dpi: 72,
+        disposition: "inline",
+        color_format: "rgb",
+        expires: "2025-12-31",
+      });
+    });
   });
 
   describe("ir_delete_quick_link", () => {
