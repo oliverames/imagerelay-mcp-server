@@ -5,24 +5,35 @@
 <h1 align="center">Image Relay MCP Server</h1>
 
 <p align="center">
-  <strong>MCP server for Image Relay's digital asset management platform.</strong><br/>
-  101 tools. Full API v2 coverage.
+  <strong>The complete Model Context Protocol server for Image Relay's digital asset management platform.</strong><br/>
+  101 tools spanning files, folders, collections, products, users, permissions, and more.
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/imagerelay-mcp-server"><img src="https://img.shields.io/npm/v/imagerelay-mcp-server?color=%23C47432&label=npm" alt="npm version" /></a>
   <a href="https://image-relay-api.readme.io/reference"><img src="https://img.shields.io/badge/API-v2-blue" alt="API v2" /></a>
-  <a href="#tools"><img src="https://img.shields.io/badge/tools-101-success" alt="101 tools" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tools-101-success" alt="101 tools" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-142-brightgreen" alt="142 tests" /></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-purple" alt="MCP compatible" /></a>
 </p>
 
 ---
 
-## Setup
+## What is this?
 
-**1.** Get an API key in Image Relay: **My Account > API Keys**
+This MCP server gives AI assistants like Claude **full access to your Image Relay DAM** through natural language. Browse folders, search files, upload assets, manage metadata, organize collections, administer users, and configure webhooks — all through conversation.
 
-**2.** Add to your MCP client config:
+Built on the [Model Context Protocol](https://modelcontextprotocol.io), it works with Claude Desktop, Claude Code, and any MCP-compatible client.
+
+## Quick Start
+
+### 1. Get an API Key
+
+In Image Relay, go to **My Account > API Keys** and generate a new key.
+
+### 2. Install
+
+**Claude Desktop** — add to your `claude_desktop_config.json`:
 
 ```json
 {
@@ -38,225 +49,328 @@
 }
 ```
 
-Set `IMAGERELAY_SUBDOMAIN` if you use `yourcompany.imagerelay.com` instead of `api.imagerelay.com`.
+**Claude Code** — add to your `~/.claude.json` or project settings:
 
-## Examples
+```json
+{
+  "mcpServers": {
+    "imagerelay": {
+      "command": "npx",
+      "args": ["-y", "imagerelay-mcp-server"],
+      "env": {
+        "IMAGERELAY_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
 
-> "Show me all subfolders in the Marketing Assets folder"
+### 3. Start talking to your DAM
+
+> "Show me what's in the Marketing Assets folder"
 >
-> "Upload this logo from URL and tag it with the Brand keyword set"
+> "Upload this logo from URL to the Brand folder with the Photo metadata template"
 >
-> "Create a quick link for file 500 as a 800x600 JPG at 72 DPI"
+> "Find all files uploaded after January 2024 in the Product Images folder"
 >
-> "List all products in the Fall 2024 catalog"
->
-> "Set up a webhook to POST to our Slack endpoint when files are created"
+> "Create a collection called Q2 Campaign and add these assets to it"
 
-## Tools
+## Environment Variables
 
-Every tool supports `response_format`: `"markdown"` (default, human-readable) or `"json"` (raw API data). Paginated tools accept a `page` parameter.
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `IMAGERELAY_API_KEY` | Yes | Your Image Relay API key (Bearer token) |
+| `IMAGERELAY_SUBDOMAIN` | No | Custom subdomain if not using `api.imagerelay.com` |
 
-### Files — 15 tools
+## Complete Tool Reference
+
+### Library Management
+
+<details>
+<summary><strong>Files</strong> — 15 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_files` | List files in a folder (filters: date, type, search, recursive) |
-| `ir_get_file` | Get file details |
-| `ir_upload_file_from_url` | Upload a file from a URL with metadata and keywords |
-| `ir_update_file_metadata` | Update metadata terms (append or overwrite) |
-| `ir_update_file_tags` | Add or remove keyword tags |
+| `ir_get_files` | List files in a folder with filters (date, type, search, recursive) |
+| `ir_get_file` | Get full details for a specific file |
+| `ir_upload_file_from_url` | Upload a file by providing a source URL |
+| `ir_update_file_metadata` | Update metadata terms on a file (append or overwrite) |
+| `ir_update_file_tags` | Add or remove keyword tags on a file |
 | `ir_move_file` | Move a file to one or more folders |
-| `ir_duplicate_file` | Copy a file to another folder |
-| `ir_create_synced_file` | Create synced copies across folders (changes propagate) |
+| `ir_duplicate_file` | Copy a file to another folder with optional metadata |
+| `ir_create_synced_file` | Create synced copies across multiple folders |
 | `ir_delete_file` | Delete a file |
-| `ir_get_file_types` | List metadata templates |
-| `ir_get_file_type` | Get a metadata template |
-| `ir_create_upload_job` | Create a chunked upload job |
-| `ir_check_upload_job_status` | Check upload job status |
-| `ir_create_file_version` | Start a version update (returns UUID for chunks) |
-| `ir_complete_file_version` | Complete a version upload |
+| `ir_get_file_types` | List all metadata templates |
+| `ir_get_file_type` | Get a specific metadata template |
+| `ir_create_upload_job` | Create a chunked upload job for large files |
+| `ir_check_upload_job_status` | Check the status of a chunked upload job |
+| `ir_create_file_version` | Start a version update (get upload UUID) |
+| `ir_complete_file_version` | Complete a file version upload after chunks are sent |
 
-### Folders — 7 tools
+</details>
+
+<details>
+<summary><strong>Folders</strong> — 7 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_root_folder` | Get the root folder |
-| `ir_get_folders` | List all folders |
-| `ir_get_folder` | Get folder details |
-| `ir_get_child_folders` | List children of a folder |
-| `ir_create_folder` | Create a folder |
+| `ir_get_root_folder` | Get the root folder (starting point for navigation) |
+| `ir_get_folders` | List all folders with pagination |
+| `ir_get_folder` | Get details for a specific folder |
+| `ir_get_child_folders` | List immediate children of a folder |
+| `ir_create_folder` | Create a new folder |
 | `ir_update_folder` | Rename a folder |
 | `ir_delete_folder` | Delete a folder |
 
-### Collections — 6 tools
+</details>
+
+<details>
+<summary><strong>Collections</strong> — 6 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_collections` | List collections |
-| `ir_get_collection` | Get a collection |
+| `ir_get_collections` | List all collections |
+| `ir_get_collection` | Get a specific collection |
 | `ir_get_collection_files` | List files in a collection |
-| `ir_create_collection` | Create a collection |
-| `ir_update_collection` | Update name or add assets |
-| `ir_delete_collection` | Delete a collection |
+| `ir_create_collection` | Create a collection with optional initial assets |
+| `ir_update_collection` | Update name or add assets to a collection |
+| `ir_delete_collection` | Delete a collection (files are preserved) |
 
-### Keywords — 9 tools
+</details>
+
+<details>
+<summary><strong>Keywords & Tagging</strong> — 9 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_keyword_sets` | List keyword sets |
-| `ir_get_keyword_set` | Get a keyword set |
-| `ir_create_keyword_set` | Create a keyword set |
+| `ir_get_keyword_sets` | List all keyword sets (tag groups) |
+| `ir_get_keyword_set` | Get a specific keyword set |
+| `ir_create_keyword_set` | Create a new keyword set |
 | `ir_update_keyword_set` | Rename a keyword set |
 | `ir_get_keywords` | List keywords in a set |
-| `ir_get_keyword` | Get a keyword |
-| `ir_create_keyword` | Create a keyword |
+| `ir_get_keyword` | Get a specific keyword |
+| `ir_create_keyword` | Create a keyword in a set |
 | `ir_update_keyword` | Rename a keyword |
 | `ir_delete_keyword` | Delete a keyword |
 
-### Quick Links — 5 tools
+</details>
+
+### Sharing & Distribution
+
+<details>
+<summary><strong>Quick Links</strong> — 5 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_quick_links` | List quick links |
-| `ir_get_quick_link` | Get a quick link |
-| `ir_get_user_quick_links` | List a user's quick links |
-| `ir_create_quick_link` | Create a download link (options: `max_width`, `max_height`, `format`, `dpi`, `disposition`, `color_format`, `expires`) |
+| `ir_get_quick_links` | List all download/share links |
+| `ir_get_quick_link` | Get a specific quick link |
+| `ir_get_user_quick_links` | List quick links for a specific user |
+| `ir_create_quick_link` | Create a download link for a file |
 | `ir_delete_quick_link` | Delete a quick link |
 
-### Folder Links — 4 tools
+</details>
+
+<details>
+<summary><strong>Folder Links</strong> — 4 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_folder_links` | List folder links |
-| `ir_get_folder_link` | Get a folder link |
-| `ir_create_folder_link` | Create a folder sharing link |
+| `ir_get_folder_links` | List all folder sharing links |
+| `ir_get_folder_link` | Get a specific folder link |
+| `ir_create_folder_link` | Create a sharing link for a folder |
 | `ir_delete_folder_link` | Delete a folder link |
 
-### Upload Links — 4 tools
+</details>
+
+<details>
+<summary><strong>Upload Links</strong> — 4 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_upload_links` | List upload links |
-| `ir_get_upload_link` | Get an upload link |
-| `ir_create_upload_link` | Create an upload link |
+| `ir_get_upload_links` | List all upload links |
+| `ir_get_upload_link` | Get a specific upload link |
+| `ir_create_upload_link` | Create an upload link for external contributors |
 | `ir_delete_upload_link` | Delete an upload link |
 
-### Products — 8 tools
+</details>
+
+### Product Information Management (PIM)
+
+<details>
+<summary><strong>Products</strong> — 8 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_products` | List products (filters: name, category, variants, template, dimension) |
-| `ir_get_product` | Get a product |
-| `ir_get_product_catalog` | Get a product's catalog |
-| `ir_create_product` | Create a product |
-| `ir_update_product` | Update a product |
+| `ir_get_products` | List products with filters (name, category, variants, template, dimension) |
+| `ir_get_product` | Get a specific product |
+| `ir_get_product_catalog` | Get the catalog a product belongs to |
+| `ir_create_product` | Create a product with SKU, dimensions, and custom attributes |
+| `ir_update_product` | Update product details |
 | `ir_delete_product` | Delete a product |
-| `ir_get_product_variants` | List variants for a product |
-| `ir_get_product_variant` | Get a variant |
+| `ir_get_product_variants` | List all variants for a product |
+| `ir_get_product_variant` | Get a specific variant |
 
-### Variants — 3 tools
+</details>
+
+<details>
+<summary><strong>Variants</strong> — 3 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_create_variant` | Create a variant |
+| `ir_create_variant` | Create a variant with dimension options and custom attributes |
 | `ir_update_variant` | Update a variant |
 | `ir_delete_variant` | Delete a variant |
 
-### Catalogs — 6 tools
+</details>
+
+<details>
+<summary><strong>Catalogs</strong> — 6 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_catalogs` | List catalogs |
-| `ir_get_catalog` | Get a catalog |
-| `ir_get_catalog_products` | List products in a catalog |
-| `ir_create_catalog` | Create a catalog |
-| `ir_update_catalog` | Update a catalog |
+| `ir_get_catalogs` | List all product catalogs |
+| `ir_get_catalog` | Get a specific catalog by ID |
+| `ir_create_catalog` | Create a catalog with optional summary |
+| `ir_update_catalog` | Rename a catalog |
 | `ir_delete_catalog` | Delete a catalog |
+| `ir_get_catalog_products` | List products in a catalog |
 
-### Categories, Templates & Dimensions — 12 tools
+</details>
+
+<details>
+<summary><strong>Categories, Templates & Dimensions</strong> — 12 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_categories` | List categories |
-| `ir_get_category` | Get a category |
-| `ir_get_templates` | List templates |
-| `ir_get_template` | Get a template |
-| `ir_create_template` | Create a template |
+| `ir_get_categories` | List product categories |
+| `ir_get_category` | Get a specific category |
+| `ir_get_templates` | List product templates |
+| `ir_get_template` | Get a specific template |
+| `ir_create_template` | Create a product template |
 | `ir_update_template` | Update a template |
 | `ir_get_channel_template_mappings` | Get channel template mappings |
-| `ir_get_dimensions` | List dimensions |
-| `ir_get_dimension` | Get a dimension |
+| `ir_get_dimensions` | List product dimensions |
+| `ir_get_dimension` | Get a specific dimension |
 | `ir_create_dimension` | Create a dimension |
 | `ir_update_dimension` | Update a dimension |
-| `ir_add_dimension_option` | Add an option to a dimension |
+| `ir_add_dimension_option` | Add a value to a dimension |
 
-### Custom Attributes — 4 tools
+</details>
+
+<details>
+<summary><strong>Custom Attributes</strong> — 4 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_custom_attributes` | List custom attributes |
-| `ir_get_custom_attribute` | Get a custom attribute |
+| `ir_get_custom_attributes` | List all custom attributes |
+| `ir_get_custom_attribute` | Get a specific custom attribute |
 | `ir_create_custom_attribute` | Create a custom attribute |
 | `ir_update_custom_attribute` | Update a custom attribute |
 
-### Users — 4 tools
+</details>
+
+### Administration
+
+<details>
+<summary><strong>Users</strong> — 4 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_me` | Get authenticated user |
-| `ir_get_users` | List users |
-| `ir_get_user` | Get a user |
+| `ir_get_me` | Get the authenticated user's profile |
+| `ir_get_users` | List all users |
+| `ir_get_user` | Get a specific user |
 | `ir_search_users` | Search by name or email |
 
-### Invited Users — 5 tools
+</details>
+
+<details>
+<summary><strong>Invited Users</strong> — 5 tools</summary>
 
 | Tool | Description |
 |------|-------------|
 | `ir_get_invited_users` | List pending invitations |
-| `ir_get_invited_user` | Get an invitation |
-| `ir_invite_user` | Invite a user |
+| `ir_get_invited_user` | Get a specific invitation |
+| `ir_invite_user` | Invite a new user |
 | `ir_delete_invited_user` | Cancel an invitation |
-| `ir_create_sso_user` | Create an SSO user |
+| `ir_create_sso_user` | Create a user via SSO |
 
-### Permissions — 3 tools
+</details>
+
+<details>
+<summary><strong>Permissions</strong> — 3 tools</summary>
 
 | Tool | Description |
 |------|-------------|
 | `ir_get_permissions` | List permission groups |
-| `ir_get_permission` | Get a permission group |
+| `ir_get_permission` | Get a specific permission group |
 | `ir_update_user_permission` | Change a user's permission group |
 
-### Webhooks — 6 tools
+</details>
+
+<details>
+<summary><strong>Webhooks</strong> — 6 tools</summary>
 
 | Tool | Description |
 |------|-------------|
-| `ir_get_supported_webhooks` | List supported event types |
-| `ir_get_webhooks` | List webhooks |
-| `ir_get_webhook` | Get a webhook |
+| `ir_get_supported_webhooks` | List all supported event types |
+| `ir_get_webhooks` | List configured webhooks |
+| `ir_get_webhook` | Get a specific webhook |
 | `ir_create_webhook` | Create a webhook |
-| `ir_update_webhook` | Update a webhook |
+| `ir_update_webhook` | Update a webhook's URL or notification emails |
 | `ir_delete_webhook` | Delete a webhook |
 
-## API Coverage
+</details>
 
-Every JSON endpoint in the [Image Relay API v2](https://image-relay-api.readme.io/reference) is implemented. Three binary-upload endpoints are excluded because MCP is JSON-only:
+## Features
 
-- `POST /upload_jobs/.../chunks/{n}` — binary file chunks
-- `POST /files/.../versions/.../chunk/{n}` — binary version chunks
-- `POST /files/{id}/thumbnail` — binary image data
+- **Complete API coverage** — 101 tools covering every JSON endpoint in Image Relay's v2 API
+- **Smart pagination** — Handles both response-body and Link-header pagination automatically
+- **Retry with backoff** — Automatic retry on 429/502/503 with exponential backoff and Retry-After support
+- **Dual output formats** — Every tool supports `markdown` (human-friendly) and `json` (machine-friendly) output
+- **Detailed error messages** — Clear, actionable error descriptions for auth failures, rate limits, and more
+- **MCP annotations** — Read-only, destructive, and idempotent hints for safe AI tool use
 
-For file uploads, use `ir_upload_file_from_url` (no chunking needed). For chunked workflows, the server handles job/version management — only the binary chunk POST requires an external HTTP client.
+## Rate Limits
+
+Image Relay allows **5 requests per second** per IP. The server handles rate limiting automatically:
+
+- `429` responses trigger automatic retry with backoff
+- `Retry-After` headers are respected when present
+- Maximum 3 retries with up to 30 second delays
 
 ## Development
 
 ```bash
+# Clone and install
 git clone https://github.com/oliverames/imagerelay-mcp-server.git
 cd imagerelay-mcp-server
 npm install
-npm test          # 142 tests
-npm run build     # compile
-npm run dev       # watch mode
+
+# Run tests
+npm test
+
+# Dev mode (auto-restart on changes)
+IMAGERELAY_API_KEY=your-key npm run dev
+
+# Build
+npm run build
 ```
+
+## API Coverage
+
+This server implements the full [Image Relay API v2](https://image-relay-api.readme.io/reference) with two intentional exceptions:
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Library API (files, folders, collections) | Complete | All endpoints |
+| Sharing (quick links, folder links, upload links) | Complete | All endpoints |
+| Keywording & metadata | Complete | All endpoints |
+| Users, permissions, invitations | Complete | All endpoints |
+| Webhooks | Complete | All endpoints |
+| PIM (products, variants, catalogs, dimensions) | Complete | All endpoints |
+| Custom attributes & templates | Complete | All endpoints |
+| Chunked file uploads | Not included | Multi-step stateful workflow; use `ir_upload_file_from_url` instead |
+| Update asset thumbnail | Not included | Requires binary upload (`application/octet-stream`) |
 
 ## License
 
