@@ -1,5 +1,25 @@
 # Worklog
 
+## 2026-03-22 — Ralph Loop: 5 new tools, bug fixes, field-level API gaps closed
+
+**What changed**: Ran 10-iteration Ralph Loop review of the entire MCP server. Added 5 new tools (ir_create_upload_job, ir_check_upload_job_status, ir_create_file_version, ir_complete_file_version, ir_get_catalog). Fixed .json suffix bug on upload/version endpoints. Added missing fields to existing tools: dimension IDs on ir_create_product, summary on ir_update_catalog, 7 image transform params on ir_create_quick_link, 4 custom fields on ir_invite_user. /simplify review caught a silent gap in upload job status formatting (finished:false branch) and an unnecessary intermediate variable. 96→101 tools, 131→142 tests. README updated to match.
+
+**Decisions made**:
+- Upload job and file version tools provide JSON management endpoints only — binary chunk transfer is excluded since MCP is JSON-only. This means the server handles job lifecycle but the actual chunk POST requires an external HTTP client.
+- `dupicate` endpoint spelling is intentional — it matches the actual Image Relay API typo. Not a bug in our code.
+- `terms: null` in upload_file_from_url is intentional per API docs ("terms can be null").
+- Kept small reference list endpoints (catalogs, categories, templates, dimensions) as non-paginated apiRequest calls — these are typically <50 items.
+
+**Left off at**: API coverage is complete for all JSON endpoints. Remaining items from prior sessions still apply:
+- Exclude `*.test.*` from npm tarball
+- Consider npm publish of v2.1.0 with the new tools
+- The `finished: false` vs `finished: null` distinction in upload job status should be verified against the live API when possible
+
+**Open questions**:
+- Quick link `purpose` field: live docs say required, scraped docs were ambiguous. Changed to required — verify this doesn't break existing callers that omit it.
+
+---
+
 ## 2026-03-21 — README, MCP connector sync, Fantastical integration
 
 **What changed**: Created comprehensive GitHub README with marketing-forward design (centered logo, badge bar, 96-tool reference across 16 collapsible sections). Added Image Relay + META MCP servers to dotfiles config (manifest.json, productivity.json) and chat sync script (sync-connectors-to-chat) with logo PNGs. Installed Image Relay as DXT extension in Claude Chat. Added Fantastical MCP to Claude Code via the DXT binary already installed in Claude Chat. Updated credentials/apple README to reflect distribution.p12 now present. All 4 repos (imagerelay-mcp-server, dotfiles, scripts, credentials) committed and pushed.
