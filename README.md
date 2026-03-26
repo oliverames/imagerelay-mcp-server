@@ -10,11 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/imagerelay-mcp-server"><img src="https://img.shields.io/npm/v/imagerelay-mcp-server?color=%23C47432&label=npm" alt="npm version" /></a>
-  <a href="https://image-relay-api.readme.io/reference"><img src="https://img.shields.io/badge/API-v2-blue" alt="API v2" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tools-101-success" alt="101 tools" /></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-142-brightgreen" alt="142 tests" /></a>
-  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-compatible-purple" alt="MCP compatible" /></a>
+  <code>101 tools</code> &bull;
+  <code>full API v2 coverage</code> &bull;
+  <code>DAM + PIM</code>
 </p>
 
 <p align="center">
@@ -23,13 +21,20 @@
   <a href="https://www.buymeacoffee.com/oliverames"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-f5a542?style=flat-square&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me a Coffee"></a>
 </p>
 
+<p align="center">
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#complete-tool-reference">All 101 Tools</a> &bull;
+  <a href="#environment-variables">Configuration</a> &bull;
+  <a href="#api-coverage">API Coverage</a>
+</p>
+
 ---
 
-## What is this?
+## Why This Exists
 
-This MCP server gives AI assistants like Claude **full access to your Image Relay DAM** through natural language. Browse folders, search files, upload assets, manage metadata, organize collections, administer users, and configure webhooks — all through conversation.
+Digital asset management is the backbone of brand operations — but DAM platforms like Image Relay are designed for human workflows, not programmatic access. Finding the right asset means navigating folder trees, applying filters, and manually downloading files. Uploading a batch of assets means repetitive form-filling.
 
-Built on the [Model Context Protocol](https://modelcontextprotocol.io), it works with Claude Desktop, Claude Code, and any MCP-compatible client.
+This server gives your AI assistant full access to your Image Relay DAM through natural language. Browse folders, search files, upload assets, manage metadata, organize collections, administer users, and configure webhooks — all through conversation. Built on the [Model Context Protocol](https://modelcontextprotocol.io), it works with Claude Desktop, Claude Code, and any MCP-compatible client.
 
 ## Quick Start
 
@@ -381,6 +386,10 @@ This server implements the full [Image Relay API v2](https://image-relay-api.rea
 ## License
 
 MIT
+
+<p align="center">
+  <sub>Not affiliated with or endorsed by Image Relay.</sub>
+</p>
 
 ---
 
