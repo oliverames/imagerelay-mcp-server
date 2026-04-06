@@ -93,6 +93,16 @@ In Image Relay, go to **My Account > API Keys** and generate a new key.
 | `IMAGERELAY_API_KEY` | Yes | Your Image Relay API key (Bearer token) |
 | `IMAGERELAY_SUBDOMAIN` | No | Custom subdomain if not using `api.imagerelay.com` |
 
+### 1Password Integration
+
+If `IMAGERELAY_API_KEY` is not set in the environment, the server automatically attempts to resolve it from [1Password CLI](https://developer.1password.com/docs/cli/):
+
+```
+op://Development/Image Relay API Key/credential
+```
+
+This means you can skip setting the env var entirely if you have `op` installed and a service account or session active. The fallback adds ~1-2s to startup and is silently skipped if 1Password is unavailable.
+
 ## Complete Tool Reference
 
 ### Library Management
