@@ -2,6 +2,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { resolveApiKey } from "./op-fallback.js";
 import { registerUserTools } from "./tools/users.js";
 import { registerFolderTools } from "./tools/folders.js";
 import { registerFileTools } from "./tools/files.js";
@@ -35,6 +36,10 @@ registerPermissionTools(server);
 registerCustomAttributeTools(server);
 
 async function main(): Promise<void> {
+  resolveApiKey(
+    "IMAGERELAY_API_KEY",
+    "op://Development/Image Relay API Key/credential"
+  );
   if (!process.env.IMAGERELAY_API_KEY) {
     console.error(
       "ERROR: IMAGERELAY_API_KEY environment variable is required.\n" +
