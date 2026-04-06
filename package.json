@@ -1,6 +1,6 @@
 {
   "name": "imagerelay-mcp-server",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "MCP server for Image Relay API integration — complete API coverage with 90+ tools",
   "type": "module",
   "main": "dist/index.js",
