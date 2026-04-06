@@ -1,5 +1,19 @@
 # Worklog
 
+## 2026-04-06 — 1Password CLI fallback for credential resolution
+
+**What changed**: Added automatic 1Password CLI fallback to credential resolution at startup. When environment variables are not set, the server attempts to resolve them via `op read` from the Development vault before failing. Uses `execFileSync` (Node) or `exec.Command` (Go) for shell-safe execution with a 10s timeout. Silent no-op if 1Password CLI is unavailable. Updated README to document the integration with `op://` reference paths. Part of a broader session that also touched ynab-mcp-server, imagerelay-mcp-server, meta-mcp-server, sprout-mcp-server, and ames-unifi-mcp.
+
+**Decisions made**: Used `execFileSync` instead of `execSync` to avoid shell injection surface (even though inputs are hardcoded string literals). Added the fallback as a separate `op-fallback.ts` module (TS servers) or inline helper (Go) rather than modifying the existing auth flow, keeping the env var path as primary (zero overhead) and 1Password as fallback only. Chose `op://Development/` vault paths matching existing 1Password item names where items exist; for servers without items yet (Meta, Sprout, UniFi), chose conventional names so items can be created later.
+
+**Left off at**: Published and pushed. 1Password items still need to be created for Meta Access Token, Threads Access Token, Sprout API Token/OAuth Client, and UniFi Controller credentials. YNAB and ImageRelay items already exist. Also: 20 uncategorized YNAB transactions from this session's review were identified but not yet categorized.
+
+**Open questions**: None.
+
+---
+
+
+
 ## 2026-03-22 — Ralph Loop: 5 new tools, bug fixes, field-level API gaps closed
 
 **What changed**: Ran 10-iteration Ralph Loop review of the entire MCP server. Added 5 new tools (ir_create_upload_job, ir_check_upload_job_status, ir_create_file_version, ir_complete_file_version, ir_get_catalog). Fixed .json suffix bug on upload/version endpoints. Added missing fields to existing tools: dimension IDs on ir_create_product, summary on ir_update_catalog, 7 image transform params on ir_create_quick_link, 4 custom fields on ir_invite_user. /simplify review caught a silent gap in upload job status formatting (finished:false branch) and an unnecessary intermediate variable. 96→101 tools, 131→142 tests. README updated to match.
