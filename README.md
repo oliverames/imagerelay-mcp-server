@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://www.imagerelay.com/hubfs/IR_Logo_Full_Color.svg" alt="Image Relay" width="320" />
+  <img src="assets/icon.png" width="80" height="80" alt="Image Relay">
 </p>
 
 <h1 align="center">Image Relay MCP Server</h1>
@@ -17,12 +17,14 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/imagerelay-mcp-server"><img src="https://img.shields.io/npm/v/imagerelay-mcp-server?style=flat-square&color=f5a542" alt="npm"></a>
+  <a href="https://github.com/oliverames/imagerelay-mcp-server/releases/tag/v2.0.2"><img src="https://img.shields.io/github/v/release/oliverames/imagerelay-mcp-server?style=flat-square&color=f5a542&label=MCPB" alt="MCPB release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-f5a542?style=flat-square" alt="License"></a>
   <a href="https://www.buymeacoffee.com/oliverames"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-support-f5a542?style=flat-square&logo=buy-me-a-coffee&logoColor=white" alt="Buy Me a Coffee"></a>
 </p>
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#install-with-mcpb">MCPB Download</a> &bull;
   <a href="#complete-tool-reference">All 101 Tools</a> &bull;
   <a href="#environment-variables">Configuration</a> &bull;
   <a href="#api-coverage">API Coverage</a>
@@ -37,6 +39,14 @@ Digital asset management is the backbone of brand operations — but DAM platfor
 This server gives your AI assistant full access to your Image Relay DAM through natural language. Browse folders, search files, upload assets, manage metadata, organize collections, administer users, and configure webhooks — all through conversation. Built on the [Model Context Protocol](https://modelcontextprotocol.io), it works with Claude Desktop, Claude Code, and any MCP-compatible client.
 
 ## Quick Start
+
+### Install with MCPB
+
+For Claude Desktop and other MCPB-compatible clients, download the local bundle from the [v2.0.2 release](https://github.com/oliverames/imagerelay-mcp-server/releases/tag/v2.0.2):
+
+[Download `imagerelay-mcp-server-2.0.2.mcpb`](https://github.com/oliverames/imagerelay-mcp-server/releases/download/v2.0.2/imagerelay-mcp-server-2.0.2.mcpb)
+
+The bundle includes the Image Relay favicon, production runtime dependencies, and setup prompts for your API key and optional subdomain.
 
 ### 1. Get an API Key
 
