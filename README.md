@@ -369,6 +369,35 @@ Image Relay allows **5 requests per second** per IP. The server handles rate lim
 - `Retry-After` headers are respected when present
 - Maximum 3 retries with up to 30 second delays
 
+## Architecture
+
+```
+src/
+├── index.ts                    Server entry point and tool registration
+├── constants.ts                API base URLs and shared constants
+├── op-fallback.ts              Optional 1Password credential resolution
+├── schemas/
+│   └── common.ts               Shared Zod schemas for pagination and formats
+├── services/
+│   ├── api-client.ts           Axios client, auth headers, pagination, retries
+│   └── formatter.ts            Markdown and JSON response formatting
+└── tools/
+    ├── files.ts                Asset search, upload from URL, metadata updates
+    ├── folders.ts              Folder navigation and organization
+    ├── collections.ts          Collection CRUD and file assignment
+    ├── products.ts             PIM products, variants, catalogs, dimensions
+    ├── users.ts                User lookup and administration
+    ├── permissions.ts          Permission groups and user access
+    └── webhooks.ts             Webhook discovery and management
+```
+
+### Design Decisions
+
+- **Single API client** keeps authentication, retry behavior, and pagination consistent across all 101 tools.
+- **Tool modules mirror Image Relay domains** so DAM, sharing, PIM, administration, and webhook behavior stay easy to audit.
+- **Markdown and JSON response modes** make the same tools useful for human review and downstream automation.
+- **1Password fallback is optional** so public installs work with plain environment variables, while private setups can stay credential-free.
+
 ## Development
 
 ```bash
